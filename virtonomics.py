@@ -115,8 +115,7 @@ class List(list):
         for fk, fv in filters.items():
             if not (isinstance(fv, list) or isinstance(fv, tuple)):
                 filters[fk] = [fv]
-        return [v for v in self if 
-                all(v.get(fk) in fv for fk, fv in filters.items())]
+        return [v for v in self if all(v.get(fk) in fv for fk, fv in filters.items())]
     
     def select(self, **filters):
         result = self(**filters)
@@ -190,6 +189,7 @@ class Virta:
         domain_ext (str): '<domain>/<server>/main/'
         driver: Selenium webdriver instance.
         goods (Dict): List of retail products.
+        indicators (dict): Units indicators (warnings).
         industries (dict): List of inductries.
         investigated_technologies (dict): To every unit type id associates the
             list of investigated levels.
@@ -207,8 +207,8 @@ class Virta:
         webdriver: Selenium webdriver class. Defaults to webdriver.Chrome.
     
     Note:
-        Attributes of type Dict are callable and can be filtered by any fields.
-        For example,
+        Attributes of type Dict and List are callable and can be filtered by 
+        any fields. For example,
         v.units(unit_class_kind='farm', country_name=['Куба', 'Дания']) 
         will return all the farms located in the two specified countries.
     """
@@ -280,14 +280,12 @@ class Virta:
         
         self.driver.get(self.domain)
         try:
-            login_button = self.driver.find_element_by_class_name(
-                           'dialog_login_opener')
+            login_button = self.driver.find_element_by_class_name('dialog_login_opener')
         except NoSuchElementException:
             return self.driver  # already logged in
         login_button.click()
         login_field = self.driver.find_element_by_name('userData[login]')
-        password_field = self.driver.find_elements_by_name(
-                             'userData[password]')[1]
+        password_field = self.driver.find_elements_by_name('userData[password]')[1]
         login_field.clear()
         login_field.send_keys(self.user)
         password_field.clear()
@@ -330,11 +328,9 @@ class Virta:
             return getattr(self, attrname)
         
         elif attrname == 'server_date':
-            date_str = self.session.tree(
-                       self.domain_ext 
-                       + 'company/rank/%s/info' % self.company['id']
-                       ).xpath('//div[@title="Время на сервере"]/text()'
-                       )[0].strip()
+            url = self.domain_ext + 'company/rank/%s/info' % self.company['id']
+            xp = '//div[@title="Время на сервере"]/text()'
+            date_str = self.session.tree(url).xpath(xp)[0].strip()
             self.server_date = str_to_date(date_str)
             return self.server_date
         
@@ -355,8 +351,7 @@ class Virta:
                 data['company_id'] = self.company['id']
             url = self.api[attrname].format(**data)
             setattr(self, attrname, self.session.get(url).json(cls=Decoder))
-            if attrname in ['cities', 'regions', 'countries', 'products', 
-                            'unittypes']:
+            if attrname in ['cities', 'regions', 'countries', 'products', 'unittypes']:
                 setattr(self, attrname, Dict(getattr(self, attrname)))
             return getattr(self, attrname)
         
@@ -1314,7 +1309,7 @@ class Virta:
     
     
     def elections(self, within_days=2):
-        """Running elections.
+        """List of running elections.
         
         Arguments:
             within_days (int): Elections that take place within the given
@@ -1326,10 +1321,8 @@ class Virta:
         
         url = self.domain_ext + 'politics/news'
         page = self.session.tree(url)
-        xp = '//td[contains(.,"%s")]/../td/' \
-             + 'a[contains(@href,"politics/elections")]/@href'
-        days = [TODAY + datetime.timedelta(days=d+1) 
-                for d in range(within_days)]
+        xp = '//td[contains(.,"%s")]/../td/a[contains(@href,"politics/elections")]/@href'
+        days = [TODAY + datetime.timedelta(days=d+1) for d in range(within_days)]
         hrefs = sum((page.xpath(xp % date_to_str(d)) for d in days), [])
         return [int(href.split('/')[-1]) for href in hrefs]
     
@@ -1537,8 +1530,7 @@ class Virta:
         codes['Промышленный и бытовой мусор'] = codes['Экологическая полиция']
         codes['Загрязнение автотранспортом'] = codes['Экологическая полиция']
         codes['Промышленные стоки'] = codes['Экологическая полиция']
-        codes['Выбросы электростанций'] = codes[
-            'Экологический мониторинг электростанций']
+        codes['Выбросы электростанций'] = codes['Экологический мониторинг электростанций']
         
         print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
