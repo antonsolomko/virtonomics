@@ -900,7 +900,7 @@ class Virta:
         return result
     
     
-    def remove_equipment(self, unit_id, amount):
+    def destroy_equipment(self, unit_id, amount):
         """Destroy equipment for a given unit.
         
         Arguments:
@@ -944,7 +944,7 @@ class Virta:
         url = self.domain_ext + 'management_units/equipment/%s' % operation
         data = {'units[%s]'%unit_id: 1 for unit_id in units}
         data['supplyData[offer]'] = offer_id
-        data['submitRepair'] = 'Отремонтировать оборудование'
+        data['submitRepair'] = 1
         return self.session.post(url, data=data)
     
     
