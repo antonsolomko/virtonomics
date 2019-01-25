@@ -5,4 +5,4 @@ Virtonomics is a multiplayer business simulation game (see virtonomica.ru for de
 
 Based on the API provided by the game, the framework allows to automate some basic game actions.
 
-One may then automate more complicated actions by inheriting from the class Virta.
+One can automate more complicated actions by inheriting from the class Virta.
