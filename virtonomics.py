@@ -874,27 +874,74 @@ class Virta:
         return result
     
     
-    def buy_equipment(self, unit_id, offer_id, quantity):
-        pass
-    
-    
-    def repair_equipment(self, offer_id, units):
-        """Repair equipment for all given units.
-        (Отремонтировать оборудование)
-        
-        Note:
-            If there is no enough equipment to repair all the units passed,
-            no equipment will be repaired.
+    def manage_equipment(self, unit_id, offer_id, amount, operation):
+        """Buy or repair equipment for a given unit.
         
         Arguments:
+            unit_id (int): Unit id.
             offer_id (int): Offer id.
-            units (list): List of units ids.
+            amount (int): Amount of equipment to buy or replace.
+            operation (str): 'buy' or 'repair'.
         
         Returns:
             POST request responce.
         """
         
-        url = self.domain_ext + 'management_units/equipment/repair'
+        url = self.domain + '/%s/ajax/unit/supply/equipment' % self.server
+        data = {
+            'operation': operation,
+            'unit': unit_id,
+            'offer': offer_id,
+            'supplier': offer_id,
+            'amount': amount
+        }
+        result = self.session.post(url, data=data)
+        self.refresh(unit_id)
+        return result
+    
+    
+    def remove_equipment(self, unit_id, amount):
+        """Destroy equipment for a given unit.
+        
+        Arguments:
+            unit_id (int): Unit id.
+            amount (int): Amount of equipment to destroy.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        url = self.domain + '/%s/ajax/unit/supply/equipment' % self.server
+        data = {
+            'operation': 'terminate',
+            'unit': unit_id,
+            'amount': amount
+        }
+        result = self.session.post(url, data=data)
+        self.refresh(unit_id)
+        return result
+    
+    
+    def manage_equipment_all(self, offer_id, units, operation='repair'):
+        """Buy or repair equipment for all given units.
+        
+        Note:
+            If there is no enough equipment to fill all the units passed,
+            no equipment will be bought or repaired.
+        
+        Arguments:
+            offer_id (int): Offer id.
+            units (list): List of units ids.
+            operation (str): 'buy' or 'repair'. Defaults to 'repair'.
+        
+        Returns:
+            POST request responce.
+        
+        Todo:
+            Add 'destroy' operation.
+        """
+        
+        url = self.domain_ext + 'management_units/equipment/%s' % operation
         data = {'units[%s]'%unit_id: 1 for unit_id in units}
         data['supplyData[offer]'] = offer_id
         data['submitRepair'] = 'Отремонтировать оборудование'
