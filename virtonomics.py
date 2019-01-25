@@ -894,7 +894,7 @@ class Virta:
             'offer': offer_id,
             'supplier': offer_id,
             'amount': amount
-        }
+            }
         result = self.session.post(url, data=data)
         self.refresh(unit_id)
         return result
@@ -916,7 +916,7 @@ class Virta:
             'operation': 'terminate',
             'unit': unit_id,
             'amount': amount
-        }
+            }
         result = self.session.post(url, data=data)
         self.refresh(unit_id)
         return result
