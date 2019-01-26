@@ -174,8 +174,6 @@ class Virta:
             directory is used.
 
     Attributes:
-        agricultural_specializations (dict): To specialization name associates
-            specialization id.
         api (dict): Some API urls provided by the game developers.
         cities (Dict): List of cities.
         company (dict): Basic company information.
@@ -370,13 +368,6 @@ class Virta:
                 levels = self.technologies(unittype_id)(status=(1,2))
                 self.investigated_technologies[unittype_id] = [t['level'] for t in levels]
             return self.investigated_technologies
-        
-        elif attrname == 'agricultural_specializations':
-            self.agricultural_specializations = {}
-            for unittype_id in (2119, 2420):
-                for spec_id, spec in self.produce(unittype_id).items():
-                    self.agricultural_specializations[spec['name']] = spec_id
-            return self.agricultural_specializations
             
         raise AttributeError(attrname)
     
@@ -1104,12 +1095,17 @@ class Virta:
         if not seasons or not all(m in range(1,12) for m in seasons):
             raise ValueError('seasons keys should be in range 1..12')
         
+        agricultural_specializations = {}
+        for unittype_id in (2119, 2420):
+            for spec_id, spec in self.produce(unittype_id).items():
+                agricultural_specializations[spec['name']] = spec_id
+        
         url = self.domain_ext + 'unit/produce_change/%s' % unit_id
         month = (self.server_date + datetime.timedelta(days=7)).month
         while month not in seasons:
             month = month % 12 + 1
         culture = seasons[month]
-        spec_id = self.agricultural_specializations[culture]
+        spec_id = agricultural_specializations[culture]
         data = {'unitProduceData[produce]': spec_id}
         return self.session.post(url, data=data)
     
