@@ -374,8 +374,8 @@ class Virta:
         elif attrname == 'agricultural_specializations':
             self.agricultural_specializations = {}
             for unittype_id in (2119, 2420):
-                for idx, spec in self.produce(unittype_id).items():
-                    self.agricultural_specializations[spec['name']] = id
+                for spec_id, spec in self.produce(unittype_id).items():
+                    self.agricultural_specializations[spec['name']] = spec_id
             return self.agricultural_specializations
             
         raise AttributeError(attrname)
@@ -576,23 +576,6 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    '''
-    def start_advertisementv(self, office_id, product_id, some_id, cities, 
-                             types, cost):
-        url = self.domain_ext + 'unit/view/%s/virtasement/%s/%s' % (
-                                office_id, product_id, some_id)
-        data = {
-            'advertData[region]': 3055,
-            'advertData[city]': cities,
-            'advertData[type]': types,
-            'advertData[totalCost]': cost,
-            'advertData[productivity]': 0,
-            'accept': 'Начать рекламную кампанию'
-            }
-        return self.session.post(url, data=data)
-    '''
-    
-    
     def set_service_price(self, unit_id, price):
         """Set service price for units like restaurants, power stations etc.
         
@@ -723,7 +706,7 @@ class Virta:
                     'constraint' (str): 'Abs' for absolute value or 'Rel' for
                         percetage change (default 'Rel').
                     'max_increase' (int, 0..5): Relative price change 
-                        constraint, may take values 0 (no constraint), 
+                        constraint, may take values: 0 (no constraint), 
                         1 (5%), 2 (10%), 3 (20%), 4 (50%), 5 (100%).
                         Defaults to 2 if not present.
                     'max_price' (float): Price constraint (default 0 for 
