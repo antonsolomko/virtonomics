@@ -174,6 +174,8 @@ class Virta:
             directory is used.
 
     Attributes:
+        agricultural_specializations (dict): To specialization name associates
+            specialization id.
         api (dict): Some API urls provided by the game developers.
         cities (Dict): List of cities.
         company (dict): Basic company information.
@@ -363,12 +365,18 @@ class Virta:
             return getattr(self, attrname)
         
         elif attrname == 'investigated_technologies':
-            result = {}
+            self.investigated_technologies = {}
             for unittype_id in self.unittypes(need_technology=True):
                 levels = self.technologies(unittype_id)(status=(1,2))
-                result[unittype_id] = [t['level'] for t in levels]
-            self.investigated_technologies = result
+                self.investigated_technologies[unittype_id] = [t['level'] for t in levels]
             return self.investigated_technologies
+        
+        elif attrname == 'agricultural_specializations':
+            self.agricultural_specializations = {}
+            for unittype_id in (2119, 2420):
+                for idx, spec in self.produce(unittype_id).items():
+                    self.agricultural_specializations[spec['name']] = id
+            return self.agricultural_specializations
             
         raise AttributeError(attrname)
     
@@ -438,8 +446,7 @@ class Virta:
         else:
             city = self.cities.select(**geo_filters)
             if city:
-                geo = '%s/%s/%s' % (city['country_id'], city['region_id'], 
-                                    city['id'])
+                geo = '%s/%s/%s' % (city['country_id'], city['region_id'], city['id'])
             else:
                 region = self.regions.select(**geo_filters)
                 if region:
@@ -645,7 +652,7 @@ class Virta:
         """
         
         url = self.domain + '/%s/ajax/unit/supply/create' % self.server
-        data={
+        data = {
             'offer': offer_id,
             'unit': unit_id,
             'amount': amount,
@@ -1093,6 +1100,37 @@ class Virta:
         return self.session.post(url, data=data)
     
     
+    def farm_season(self, unit_id, seasons):
+        """Select farm or plantation specialization depending on a season.
+        
+        Выбрать специализацию земледельческой фермы/плантации в зависимости от
+        текущего сезона. Для с/х подразделений, позволяющих выращивать
+        несколько культур, позволяет задать специализацию для каждого месяца
+        отдельно.
+        
+        Arguments:
+            unit_id (int): Unit id.
+            seasons (dict): Dictionary that to a month (1..12) associates 
+                specialization name. For example,
+                {7: 'Сахар', 8: 'Сахар', 9: 'Сахар', 10: 'Кукуруза'}
+            
+        Returns:
+            POST request responce.
+        """
+        
+        if not seasons or not all(m in range(1,12) for m in seasons):
+            raise ValueError('seasons keys should be in range 1..12')
+        
+        url = self.domain_ext + 'unit/produce_change/%s' % unit_id
+        month = (self.server_date + datetime.timedelta(days=7)).month
+        while month not in seasons:
+            month = month % 12 + 1
+        culture = seasons[month]
+        spec_id = self.agricultural_specializations[culture]
+        data = {'unitProduceData[produce]': spec_id}
+        return self.session.post(url, data=data)
+    
+    
     # Research related methods
     
     @staticmethod
@@ -1245,7 +1283,7 @@ class Virta:
     
     @staticmethod
     def hypothesis_stydy_expected_time(success_probability, reference_time=1, 
-                                         labs_num=1):
+                                       labs_num=1):
         """Expected duration of the 2nd stage of research.
         (Ожидаемое время проработки гипотезы)
         
@@ -1298,7 +1336,8 @@ class Virta:
         expected_time = lambda h: Virta.hypothesis_stydy_expected_time(
                                       h['success_probabilities'],
                                       reference_time=h['hypotesis_lengths'],
-                                      labs_num=labs_num)
+                                      labs_num=labs_num
+                                      )
         hypothesis = min(hypotheses, key=expected_time)
         hypothesis['expected_time'] = expected_time(hypothesis)
         return hypothesis
@@ -1322,11 +1361,9 @@ class Virta:
             Too specific. Move to MyVirta class?
         """
         
-        units = [self.unit_summary(u) 
-                 for u in self.units(unit_type_id=unittype_id)]
+        units = [self.unit_summary(u) for u in self.units(unit_type_id=unittype_id)]
         units = [u for u in units 
-                 if u['size'] >= min_size 
-                 and u['technology_level'] >= tech_level]
+                 if u['size'] >= min_size and u['technology_level'] >= tech_level]
         if units:
             return max(units, key=lambda u: u['productivity'])
         else:
@@ -1518,7 +1555,7 @@ class Virta:
         print(unittype_name, 'rent up' if rent_up else 'rent down')
         change = 'rent_up' if rent_up else 'rent_down'
         url = self.domain_ext + 'politics/%s/%s/%d' % (
-              change, city_id, codes[unittype_name])
+                  change, city_id, codes[unittype_name])
         self.session.get(url)
     
     
@@ -1581,7 +1618,7 @@ class Virta:
         
         print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
-              region_id, codes[project_name])
+                  region_id, codes[project_name])
         self.session.get(url)
     
     
@@ -1623,19 +1660,17 @@ class Virta:
         #Alternative project names
         codes['education'] = codes['Закон об образовании']
         codes['construction'] = codes['Закон о жилищном строительстве']
-        codes['trade'] = codes[
-            'Закон о государственной поддержке розничных рынков']
+        codes['trade'] = codes['Закон о государственной поддержке розничных рынков']
         codes['sport'] = codes['Постановление о развитии физкультуры и спорта']
         codes['food'] = codes['Закон об общественном питании']
-        codes['no_tender'] = codes[
-            'Мораторий на проведение в стране регулярных тендеров']
+        codes['no_tender'] = codes['Мораторий на проведение в стране регулярных тендеров']
         codes['ecology'] = codes['Закон о национальной экологической службе']
         codes['trademark'] = codes['Закон о торговых марках']
         codes['transport'] = codes['Закон о национальной транспортной службе']
 
         print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
-              country_id, codes[project_name])
+                  country_id, codes[project_name])
         self.session.get(url)
     
     
