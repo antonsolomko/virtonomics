@@ -221,29 +221,27 @@ class Virta:
     db_name = 'v.db'
     __pagesize = '&pagesize=1000000'
     api = {
-        'token': 'token',
-        'refresh': 'unit/refresh',
         'cities': 'geo/city/browse',
-        'regions': 'geo/region/browse',
+        'company': 'my/company',
+        'company_finance': 'company/report/finance/byitem?id={company_id}',
         'countries': 'geo/country/browse',
-        'product_categories': 'product/categories',
-        'products': 'product/browse',
         'goods': 'product/goods',
         'industries': 'industry/browse',
-        'unittypes': 'unittype/browse',
+        'offers': 'marketing/report/trade/offers?product_id={product_id}'+__pagesize,
         'produce': 'unittype/produce?id={unittype_id}',
-        'unit_summary': 'unit/summary?id={unit_id}',
-        'company': 'my/company',
-        'units': 'company/units?id={company_id}'+__pagesize,
-        'supply_contracts': 
-            'unit/supply/contracts?id={unit_id}{product_filter}'+__pagesize,
-        'sale_contracts': 
-            'unit/sale/contracts?id={unit_id}{product_filter}'+__pagesize,
-        'company_finance': 'company/report/finance/byitem?id={company_id}',
+        'product_categories': 'product/categories',
+        'products': 'product/browse',
+        'refresh': 'unit/refresh',
+        'regions': 'geo/region/browse',
+        'retail': 'marketing/report/retail/metrics?product_id={product_id}&geo={geo}',
+        'sale_contracts': 'unit/sale/contracts?id={unit_id}{product_filter}'+__pagesize,
+        'supply_contracts': 'unit/supply/contracts?id={unit_id}{product_filter}'+__pagesize,
+        'technologies': 'unittype/technologies',
+        'token': 'token',
         'unit_forecast': 'unit/forecast?id={unit_id}',
-        'retail': 
-            'marketing/report/retail/metrics?product_id={product_id}&geo={geo}',
-        'technologies': 'unittype/technologies'
+        'unit_summary': 'unit/summary?id={unit_id}',
+        'units': 'company/units?id={company_id}'+__pagesize,
+        'unittypes': 'unittype/browse',
         }
     
     
@@ -404,6 +402,12 @@ class Virta:
             unit_info['forecast'] = self.session.get(url_f).json(cls=Decoder)
             self.__unit_summary[unit_id] = unit_info
         return self.__unit_summary[unit_id]
+    
+    
+    def offers(self, product_id):
+        url = self.api['offers'].format(product_id=product_id)
+        result = self.session.get(url).json(cls=Decoder)
+        return Dict(result.get('data',{}))
     
     
     def retail_metrics(self, product_id, geo=None, **geo_filters):
