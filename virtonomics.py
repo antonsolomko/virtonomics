@@ -1003,7 +1003,7 @@ class Virta:
     def upgrade_equipment(self, unit_id, offers, target_quality=None, 
                           target_amount=None, *, max_price=None, 
                           target_quality_max=None, exact_amount=False,
-                          destroy=True):
+                          destroy=True, act=False):
         """UNDER DEVELOPMENT
         
         Upgrade unit equipment to achieve given target quality and amount.
@@ -1046,18 +1046,23 @@ class Virta:
                 False otherwise.
         """
         
+        unit = self.unit_summary(unit_id, refresh=True)
+        equipment_count = unit['equipment_count']
+        equipment_max = unit['equipment_max']
+        equipment_quality = unit['equipment_quality']
+        
         destroy_cost = 1  # needs to be positive to prevent unnecessary destroy
         
         if isinstance(offers, dict):
             offers_list = []
             for offer_id, offer in offers.items():
                 offer['id'] = offer_id
+                if offer['free_for_buy'] > equipment_max:
+                    offer['free_for_buy'] = equipment_max
                 offers_list.append(offer)
             offers = offers_list
             
-        unit = self.unit_summary(unit_id, refresh=True)
-        equipment_count = unit['equipment_count']
-        equipment_quality = unit['equipment_quality']
+        print(len(offers), 'offers')
         
         if target_quality is None:
             target_quality = unit['equipment_quality_required']
@@ -1091,7 +1096,7 @@ class Virta:
             b_ub += [equipment_count - target_amount]
             
         A_ub += [[-1] + [1]*len(offers)]
-        b_ub += [unit['equipment_max'] - equipment_count]
+        b_ub += [equipment_max - equipment_count]
         
         if max_price:
             A_ub += [[0] + [o['price'] - max_price for o in offers]]
@@ -1100,15 +1105,15 @@ class Virta:
         simplex = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
         
         if not simplex.success:
-            return False
+            return simplex
         
         to_order = sum(int(a + 0.5) for a in simplex.x[1:] if a > 0)
         
         amount_to_destroy = int(simplex.x[0] + 0.5)
         if equipment_count - amount_to_destroy + to_order < target_amount:
             amount_to_destroy = equipment_count + to_order - target_amount
-        #self.destroy_equipment(unit_id, amount_to_destroy)
-        print(len(offers), 'offers')
+        if act:
+            self.destroy_equipment(unit_id, amount_to_destroy)
         print('Destroy', amount_to_destroy)
         print('To order', to_order)
         total = equipment_count - amount_to_destroy
@@ -1117,7 +1122,8 @@ class Virta:
         for offer, amount in zip(offers, simplex.x[1:]):
             if amount > 0:
                 amount = int(amount + 0.5)
-                #self.buy_equipment(unit_id, offer['id'], amount)
+                if act:
+                    self.buy_equipment(unit_id, offer['id'], amount)
                 total += amount
                 quality += offer['quality'] * amount
                 cost += offer['price'] * amount
@@ -1867,15 +1873,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    unit_id = 5991783
-    target_quality = 73.76
-    target_amount = 200
-    max_price = None
-    target_quality_max = None
-    exact_amount = True
-    destroy = False
-    v.upgrade_equipment(unit_id, v.offers(423138), target_quality, target_amount,
-                        max_price=max_price,
-                        target_quality_max=target_quality_max,
-                        exact_amount=exact_amount,
-                        destroy=destroy)
