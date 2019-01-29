@@ -9,9 +9,9 @@ import sqlite3
 import requests
 from lxml import html
 import json
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
+#from selenium import webdriver
+#from selenium.webdriver.common.keys import Keys
+#from selenium.common.exceptions import NoSuchElementException
 import logging
 from functools import wraps
 
@@ -187,7 +187,7 @@ class Virta:
         db_name (str): Database name.
         domain (str): Defaults to 'https://virtonomica.ru'
         domain_ext (str): '<domain>/<server>/main/'
-        driver: Selenium webdriver instance.
+        driver: Selenium webdriver instance. (not currently supported)
         goods (Dict): List of retail products.
         indicators (dict): Units indicators (warnings).
         industries (dict): List of inductries.
@@ -217,7 +217,7 @@ class Virta:
     password = os.environ.get('VIRTA_PASSWORD')
     path = os.environ.get('VIRTA_DIR', os.getcwd())
     domain = 'https://virtonomica.ru'
-    webdriver = webdriver.Chrome
+    #webdriver = webdriver.Chrome
     db_name = 'v.db'
     __pagesize = '&pagesize=1000000'
     api = {
@@ -272,7 +272,7 @@ class Virta:
         self.session.post(url, data=data)
         return self.session
     
-    
+    '''
     def driver_login(self):
         """Open web browser and ligin to the game."""
         
@@ -291,7 +291,7 @@ class Virta:
         password_field.send_keys(Keys.ENTER)
         time.sleep(1)
         return self.driver
-    
+    '''
     
     def quit(self):
         """Close any connections if open.
@@ -314,10 +314,10 @@ class Virta:
         if attrname == 'session':
             return self.open_session()
             
-        elif attrname == 'driver':
-            self.driver = self.webdriver()
-            self.driver_login()
-            return self.driver
+        #elif attrname == 'driver':
+        #    self.driver = self.webdriver()
+        #    self.driver_login()
+        #    return self.driver
             
         elif attrname == 'db' or attrname == 'conn':
             self.conn = sqlite3.connect(self.path + self.db_name)
@@ -859,7 +859,7 @@ class Virta:
         return result
     
     
-    def manage_equipment(self, unit_id, offer_id, amount, operation):
+    def supply_equipment(self, unit_id, offer_id, amount, operation):
         """Buy or repair equipment for a given unit.
         
         Arguments:
@@ -885,6 +885,36 @@ class Virta:
         return result
     
     
+    def buy_equipment(self, unit_id, offer_id, amount):
+        """Buy equipment for a given unit.
+        
+        Arguments:
+            unit_id (int): Unit id.
+            offer_id (int): Offer id.
+            amount (int): Amount of equipment to buy.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        return self.supply_equipment(unit_id, offer_id, amount, 'buy')
+    
+    
+    def repair_equipment(self, unit_id, offer_id, amount):
+        """Repair equipment for a given unit.
+        
+        Arguments:
+            unit_id (int): Unit id.
+            offer_id (int): Offer id.
+            amount (int): Amount of equipment to replace.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        return self.supply_equipment(unit_id, offer_id, amount, 'repair')
+    
+    
     def destroy_equipment(self, unit_id, amount):
         """Destroy equipment for a given unit.
         
@@ -907,7 +937,7 @@ class Virta:
         return result
     
     
-    def manage_equipment_all(self, offer_id, units, operation='repair'):
+    def supply_equipment_all(self, offer_id, units, operation):
         """Buy or repair equipment for all given units.
         
         Note:
@@ -917,7 +947,7 @@ class Virta:
         Arguments:
             offer_id (int): Offer id.
             units (list): List of units ids.
-            operation (str): 'buy' or 'repair'. Defaults to 'repair'.
+            operation (str): 'buy' or 'repair'.
         
         Returns:
             POST request responce.
@@ -931,6 +961,46 @@ class Virta:
         data['supplyData[offer]'] = offer_id
         data['submitRepair'] = 1
         return self.session.post(url, data=data)
+    
+    
+    def buy_equipment_all(self, offer_id, units):
+        """Buy equipment for all given units.
+        
+        Note:
+            If there is no enough equipment to fill all the units passed,
+            no equipment will be bought.
+        
+        Arguments:
+            offer_id (int): Offer id.
+            units (list): List of units ids.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        return self.supply_equipment_all(offer_id, units, 'buy')
+    
+    
+    def repair_equipment_all(self, offer_id, units):
+        """Repair equipment for all given units.
+        
+        Note:
+            If there is no enough equipment to fill all the units passed,
+            no equipment will be repaired.
+        
+        Arguments:
+            offer_id (int): Offer id.
+            units (list): List of units ids.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        return self.supply_equipment_all(offer_id, units, 'repair')
+    
+    
+    def upgrade_equipment(self, unit_id, target_quality, target_amount=None):
+        pass
     
     
     def reorder_sale_contracts(self, unit_id, products):
