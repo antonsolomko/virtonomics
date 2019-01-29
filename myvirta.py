@@ -482,6 +482,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.resize_warehouses()
-    v.manage_research()
-    #v.autorepair_equipment()
+    #v.manage_research()

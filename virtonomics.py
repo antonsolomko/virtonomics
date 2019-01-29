@@ -15,12 +15,13 @@ import json
 import logging
 from functools import wraps
 from scipy.optimize import linprog
+import warnings
 
     
 TODAY = datetime.datetime.today().date()  # real date, no timezone correction
 
-
-requests.Session.tree = lambda self,url: html.fromstring(self.get(url).content)
+# saves some space when parsing pages
+requests.Session.tree = lambda self, url: html.fromstring(self.get(url).content)
 
 logging.basicConfig(filename='%s.log' % __file__, 
                     format='%(asctime)s  %(message)s',  # %(levelname)-8s
@@ -92,7 +93,15 @@ def date_to_str(date):
 
 
 class Dict(dict):
-    """Extends built-in dict. Allows to filter dictionaries by attributes."""
+    """Extends built-in dict. Values are assumed to be dictionaries.
+    
+    Callable. When called with keyword arguments, return the dictionaries
+    that contain all the passed key-value pairs.
+    If a list or a tuple is passed as a keyword argument, perform inclusion
+    test for the corresponding values.
+    If the resulting dictionary contains a unique element, this single 
+    dictionary can be extracted using select method with the same arguments.
+    """
     
     def __call__(self, **filters):
         for fk, fv in filters.items():
@@ -102,6 +111,9 @@ class Dict(dict):
                 if all(v.get(fk) in fv for fk, fv in filters.items())}
     
     def select(self, **filters):
+        """Return the unique dictionary that contains passed key-value pairs.
+        If not unique or does not exist, return None.
+        """
         result = self(**filters)
         if len(result) == 1:
             return next(iter(result.values()))
@@ -110,7 +122,15 @@ class Dict(dict):
 
 
 class List(list):
-    """Extends built-in list. Allows to filter lists by attributes."""
+    """Extends built-in list. Values are assumed to be dictionaries.
+    
+    Callable. When called with keyword arguments, return the list of 
+    dictionaries that contain all the passed key-value pairs.
+    If a list or a tuple is passed as a keyword argument, perform inclusion
+    test for the corresponding values.
+    If the resulting list contains a unique element, this single dictionary 
+    can be extracted using select method with the same arguments.
+    """
     
     def __call__(self, **filters):
         for fk, fv in filters.items():
@@ -119,6 +139,9 @@ class List(list):
         return [v for v in self if all(v.get(fk) in fv for fk, fv in filters.items())]
     
     def select(self, **filters):
+        """Return the unique dictionary that contains passed key-value pairs.
+        If not unique or does not exist, return None.
+        """
         result = self(**filters)
         if len(result) == 1:
             return result[0]
@@ -127,6 +150,10 @@ class List(list):
 
 
 class Decoder(json.JSONDecoder):
+    """JSON decoter
+    Transforms numeral strings to numbers, including dictionaries keys.
+    """
+    
     def decode(self, s):
         result = super().decode(s)
         return self._decode(result)
@@ -202,6 +229,7 @@ class Virta:
         server (str): Server name.
         server_date (datetime.date): Current virtual server date.
         session (requests.Session): Requests session. Opens automatically.
+        state_kinds (tuple): state enterprises kinds
         unittypes (Dict): List of unit types.
         units (Dict): List of company units.
         user (str): Username (login).
@@ -244,6 +272,7 @@ class Virta:
         'units': 'company/units?id={company_id}'+__pagesize,
         'unittypes': 'unittype/browse',
         }
+    state_kinds = ('farm', 'fishingbase', 'mine', 'orchard', 'sawmill', 'villa')
     
     
     def __init__(self, server, **kwargs):
@@ -514,7 +543,7 @@ class Virta:
         """Set technology level for a given unit.
         (Внедрить технологию)
         
-        Note:
+        Warning:
             Some technologies may be very expensive. Be careful when setting 
             max_price to None.
         
@@ -1170,6 +1199,9 @@ class Virta:
     def resize_unit(self, unit_id, size_delta=0, size=None):
         """Change unit size.
         
+        Note:
+            Attempting to resize a state enterprise will raise an exception.
+        
         Arguments:
             unit_id (int): Unit id.
             size_delta (int): Relative size change. Defaults to 0 (no change).
@@ -1181,6 +1213,8 @@ class Virta:
             POST request responce.
         """
         
+        if self.units[unit_id]['unit_class_kind'] in self.state_kinds:
+            raise ValueError('State enterprises cannot be resized')
         if size is not None:
             size_delta = size - self.unit_summary(unit_id)['size']
         url = self.domain_ext + 'unit/upgrade/%s' % unit_id
@@ -1269,6 +1303,9 @@ class Virta:
     def close_unit(self, unit_id):
         """Close unit.
         
+        Note:
+            Attempting to close a state enterprise will raise an exception.
+        
         Arguments:
             unit_id (int): Unit id.
         
@@ -1276,8 +1313,11 @@ class Virta:
             POST request responce.
         """
         
+        if self.units[unit_id]['unit_class_kind'] in self.state_kinds:
+            raise ValueError('State enterprises cannot be closed')
         url = self.domain_ext + 'unit/close/%s' % unit_id
         data = {'close_unit': 1}
+        print('close')
         return self.session.post(url, data=data)
     
     
@@ -1490,7 +1530,7 @@ class Virta:
         if success_probability > 1:
             success_probability /= 100
         if success_probability < 0 or success_probability > 1:
-            raise ValueError
+            raise ValueError('Probability should be in range 0..100')
             
         expectation = 0
         attempt = 1
