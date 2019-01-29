@@ -1,5 +1,5 @@
 # virtonomics
-#Virtonomics framework in Python.
+Virtonomics framework in Python.
 
 Virtonomics is a multiplayer browser business simulation game (see [the game website](https://virtonomica.ru/) for details).
 
