@@ -14,6 +14,7 @@ import json
 #from selenium.common.exceptions import NoSuchElementException
 import logging
 from functools import wraps
+from scipy.optimize import linprog
 
     
 TODAY = datetime.datetime.today().date()  # real date, no timezone correction
@@ -999,8 +1000,134 @@ class Virta:
         return self.supply_equipment_all(offer_id, units, 'repair')
     
     
-    def upgrade_equipment(self, unit_id, target_quality, target_amount=None):
-        pass
+    def upgrade_equipment(self, unit_id, offers, target_quality=None, 
+                          target_amount=None, *, max_price=None, 
+                          target_quality_max=None, exact_amount=False,
+                          destroy=True):
+        """UNDER DEVELOPMENT
+        
+        Upgrade unit equipment to achieve given target quality and amount.
+        Finds the cheapest mix of available and installed equipment.
+        
+        Note:
+            Current orders are computed using standard simplex method and then
+            rounded. This may lead to some inaccuracy in the result, especially
+            for small amonts of equipment. Thus it is recommended to allow some
+            margin for target quality to compensate possible inaccuracy.
+        
+        Todo:
+            Implement a proper integer linear programming algorithm to get a
+            precise result.
+        
+        Arguments:
+            unit_id (int): Target unit id.
+            offers (list): List of offers to choose from. Each value should be 
+                a dictionary containing the keys: 'id' (offer id), 'total_cost'
+                (or 'price'), 'quality', 'free_for_buy'.
+                If 'total_cost' is not present or eluals 0, 'price' is used 
+                instead (although the resulting cost may be higher due to the 
+                transportation cost and customs duties).
+            target_quality (float): Target equipment quality. Defaults to None
+                (the quality required by technological level).
+            target_amount (int): Target equipment amount. Defaults to None
+                (remain the amount installed already).
+            max_price (float): Maximum average price per equipment piece to be
+                ordered. Defaults to None (no constraint).
+            target_quality_max (float): Resulting quality upper bound.
+                Defaults to None (no restriction).
+            exact_amount (bool): If True, the exact equipment amount specified
+                in target_amount will be installed. Otherwise, the resulting
+                amount may be bigger than target_amount. Defaults to False.
+            destroy (bool): Allow destroying equipment already
+                installed. Defaults to True.
+        
+        Returns:
+            bool: True if optimal solution satisfying the restrictions found, 
+                False otherwise.
+        """
+        
+        destroy_cost = 1  # needs to be positive to prevent unnecessary destroy
+        
+        if isinstance(offers, dict):
+            offers_list = []
+            for offer_id, offer in offers.items():
+                offer['id'] = offer_id
+                offers_list.append(offer)
+            offers = offers_list
+            
+        unit = self.unit_summary(unit_id, refresh=True)
+        equipment_count = unit['equipment_count']
+        equipment_quality = unit['equipment_quality']
+        
+        if target_quality is None:
+            target_quality = unit['equipment_quality_required']
+        
+        if target_amount is None:
+            target_amount = equipment_count
+        
+        bounds = [(0, equipment_count if destroy else 0)]
+        bounds += [(0, o['free_for_buy']) for o in offers]
+        
+        # Target functional to minimize
+        c = [destroy_cost] 
+        c += [o['total_cost'] if 'total_cost' in o and o['total_cost'] else o['price']
+              for o in offers]
+        
+        A_ub = [[equipment_quality - target_quality] 
+                + [target_quality - o['quality'] for o in offers]]
+        b_ub = [(equipment_quality - target_quality) * equipment_count]
+            
+        if target_quality_max:
+            A_ub += [[target_quality_max - equipment_quality]
+                     + [o['quality'] - target_quality_max for o in offers]]
+            b_ub += [(target_quality_max - equipment_quality) * equipment_count]
+        
+        if exact_amount:
+            A_eq = [[-1] + [1]*len(offers)]
+            b_eq = [target_amount - equipment_count]
+        else:
+            A_eq, b_eq = None, None
+            A_ub += [[1] + [-1]*len(offers)]
+            b_ub += [equipment_count - target_amount]
+            
+        A_ub += [[-1] + [1]*len(offers)]
+        b_ub += [unit['equipment_max'] - equipment_count]
+        
+        if max_price:
+            A_ub += [[0] + [o['price'] - max_price for o in offers]]
+            b_ub += [0]
+        
+        simplex = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
+        
+        if not simplex.success:
+            return False
+        
+        to_order = sum(int(a + 0.5) for a in simplex.x[1:] if a > 0)
+        
+        amount_to_destroy = int(simplex.x[0] + 0.5)
+        if equipment_count - amount_to_destroy + to_order < target_amount:
+            amount_to_destroy = equipment_count + to_order - target_amount
+        #self.destroy_equipment(unit_id, amount_to_destroy)
+        print(len(offers), 'offers')
+        print('Destroy', amount_to_destroy)
+        print('To order', to_order)
+        total = equipment_count - amount_to_destroy
+        quality = equipment_quality * total
+        cost = 0
+        for offer, amount in zip(offers, simplex.x[1:]):
+            if amount > 0:
+                amount = int(amount + 0.5)
+                #self.buy_equipment(unit_id, offer['id'], amount)
+                total += amount
+                quality += offer['quality'] * amount
+                cost += offer['price'] * amount
+                print('', amount, 'q:%.2f' % offer['quality'], 'p:%.2f' % offer['price'])
+        print('Total', total)
+        print('Quality %.2f' % (quality / max(1,total)))
+        print('Price %.2f' % (cost / max(1,to_order)))
+        print('Cost %.0f' % cost)
+        
+        return True
     
     
     def reorder_sale_contracts(self, unit_id, products):
@@ -1740,3 +1867,15 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    unit_id = 5991783
+    target_quality = 73.76
+    target_amount = 200
+    max_price = None
+    target_quality_max = None
+    exact_amount = True
+    destroy = False
+    v.upgrade_equipment(unit_id, v.offers(423138), target_quality, target_amount,
+                        max_price=max_price,
+                        target_quality_max=target_quality_max,
+                        exact_amount=exact_amount,
+                        destroy=destroy)

@@ -7,12 +7,12 @@ from virtonomics import *
 
 #@for_all_methods(logger)
 class MyVirta(Virta):
-    eco_factors = (
+    eco_factors = [
         'Промышленный и бытовой мусор',
         'Загрязнение автотранспортом',
         'Промышленные стоки',
         'Выбросы электростанций'
-        )
+        ]
     industrial_cities = ['Борисполь']  # managed differently from other cities
     supported_parties = [
         'Украинская партия',
@@ -23,7 +23,6 @@ class MyVirta(Virta):
     
     def __init__(self, server='olga', **kwargs):
         super().__init__(server, **kwargs)
-        self.company = {'id': 2138526}
     
     
     def set_innovation(self, unit_id, innovation_name, **kwargs):
@@ -78,12 +77,10 @@ class MyVirta(Virta):
         # Determine party members companies ids
         url = self.domain_ext + 'company/view/%s/party' % self.company['id']
         page = self.session.tree(url)
-        xp = '//input[@name="member[]"]/../..//' \
-             + 'a[contains(@href,"company/view")]/@href'
+        xp = '//input[@name="member[]"]/../..//a[contains(@href,"company/view")]/@href'
         companies = [href.split('/')[-1] for href in page.xpath(xp)]
         for unit_id, unit in self.units(class_name='Склад').items():
-            if (not unit_ids and unit['name'][:1] == '%' 
-                    or unit_id in unit_ids):
+            if (not unit_ids and unit['name'][:1] == '%' or unit_id in unit_ids):
                 print(unit['name'])
                 products = {}
                 for contract in self.sale_contracts(unit_id)['data']:
@@ -102,13 +99,13 @@ class MyVirta(Virta):
         units = self.units(unit_type_name='Вилла', country_name='Украина')
         for unit in units.values():
             print(unit['name'])
-            self.set_innovation(unit['id'], 'Политическая агитация')
+            self.set_innovation(unit['id'], 'agitation')
     
     
     def manage_cities(self):
         print('\nMAYOR')
-        cities = [c for c in self.cities.values() if 'mayor' in c 
-                  and c['mayor']['mayor_name']==self.user]
+        cities = [c for c in self.cities.values() 
+                  if 'mayor' in c and c['mayor']['mayor_name']==self.user]
         
         for city in cities:
             is_industrial = city['city_name'] in self.industrial_cities
@@ -183,8 +180,10 @@ class MyVirta(Virta):
                 xpath = '//td[.="%s"]/../td[2]/span/text()' % eco_factor
                 if page.xpath(xpath)[0] != 'в норме':
                     self.region_money_project(region['id'], eco_factor)
-            self.region_money_projects( region['id'], 
-                ['eco90', 'agriculture', 'forest', 'animal', 'air', 'road'])
+            self.region_money_projects(
+                    region['id'], 
+                    ('eco90', 'agriculture', 'forest', 'animal', 'air', 'road')
+                    )
     
     
     def country_money_projects(self, country_id, project_names):
@@ -251,7 +250,7 @@ class MyVirta(Virta):
         self.manage_regions()
         self.manage_countries()
         self.elections_vote()
-        self.manage_equipment(6247327, 7970419, 4, 'buy')
+        self.buy_equipment(6247327, 7970419, 4)
         self.send_yacht_to_regatta(6247327)
     
     
