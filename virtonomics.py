@@ -1481,7 +1481,6 @@ class Virta:
             POST request responce.
         """
         
-        print('Council tax %s' % ('up' if increase else 'down'))
         action = 'fee_up' if increase else 'fee_down'
         url = self.domain_ext + 'politics/%s/%s' % (action, city_id)
         self.session.get(url)
@@ -1544,7 +1543,6 @@ class Virta:
         codes['Промышленные стоки'] = codes['sewage']
         codes['Выбросы электростанций'] = codes['power']
         
-        print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
                   city_id, codes[project_name])
         return self.session.get(url)
@@ -1605,7 +1603,6 @@ class Virta:
         codes['villa'] = codes['Вилла']
         codes['communication'] = codes['Сеть коммуникационных вышек']
 
-        print(unittype_name, 'rent up' if rent_up else 'rent down')
         change = 'rent_up' if rent_up else 'rent_down'
         url = self.domain_ext + 'politics/%s/%s/%d' % (
                   change, city_id, codes[unittype_name])
@@ -1669,7 +1666,6 @@ class Virta:
         codes['Промышленные стоки'] = codes['Экологическая полиция']
         codes['Выбросы электростанций'] = codes['Экологический мониторинг электростанций']
         
-        print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
                   region_id, codes[project_name])
         self.session.get(url)
@@ -1721,14 +1717,13 @@ class Virta:
         codes['trademark'] = codes['Закон о торговых марках']
         codes['transport'] = codes['Закон о национальной транспортной службе']
 
-        print(project_name)
         url = self.domain_ext + 'politics/money_project/%s/%s' % (
                   country_id, codes[project_name])
         self.session.get(url)
     
     
     def send_yacht_to_regatta(self, unit_id):
-        """Send a yacht to the world regatta.
+        """Send yacht to the world regatta.
         (Отправить яхту на мировую регату)
         
         Arguments:
@@ -1739,7 +1734,7 @@ class Virta:
         """
         
         url = self.domain_ext + 'unit/view/%s' % unit_id
-        data = {'picnic_btn': 'Отправка яхты на мировую регату'}
+        data = {'picnic_btn': 1}
         return self.session.post(url, data=data)
         
 
