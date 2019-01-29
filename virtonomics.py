@@ -15,7 +15,6 @@ import json
 import logging
 from functools import wraps
 from scipy.optimize import linprog
-import warnings
 
     
 TODAY = datetime.datetime.today().date()  # real date, no timezone correction
@@ -1317,7 +1316,6 @@ class Virta:
             raise ValueError('State enterprises cannot be closed')
         url = self.domain_ext + 'unit/close/%s' % unit_id
         data = {'close_unit': 1}
-        print('close')
         return self.session.post(url, data=data)
     
     
