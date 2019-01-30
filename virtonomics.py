@@ -104,10 +104,10 @@ class Dict(dict):
     
     def __call__(self, **filters):
         for fk, fv in filters.items():
-            if not (isinstance(fv, list) or isinstance(fv, tuple)):
+            if not (isinstance(fv, list) or isinstance(fv, tuple) or isinstance(fv, set)):
                 filters[fk] = [fv]
-        return {k: v for k, v in self.items()
-                if all(v.get(fk) in fv for fk, fv in filters.items())}
+        return Dict({k: v for k, v in self.items()
+                if all(v.get(fk) in fv for fk, fv in filters.items())})
     
     def select(self, **filters):
         """Return the unique dictionary that contains passed key-value pairs.
@@ -133,9 +133,9 @@ class List(list):
     
     def __call__(self, **filters):
         for fk, fv in filters.items():
-            if not (isinstance(fv, list) or isinstance(fv, tuple)):
+            if not (isinstance(fv, list) or isinstance(fv, tuple) or isinstance(fv, set)):
                 filters[fk] = [fv]
-        return [v for v in self if all(v.get(fk) in fv for fk, fv in filters.items())]
+        return List(v for v in self if all(v.get(fk) in fv for fk, fv in filters.items()))
     
     def select(self, **filters):
         """Return the unique dictionary that contains passed key-value pairs.
@@ -380,7 +380,7 @@ class Virta:
                 data['company_id'] = self.company['id']
             url = self.api[attrname].format(**data)
             setattr(self, attrname, self.session.get(url).json(cls=Decoder))
-            if attrname in ['cities', 'regions', 'countries', 'products', 'unittypes']:
+            if attrname in ['cities', 'regions', 'countries', 'products', 'unittypes', 'goods']:
                 setattr(self, attrname, Dict(getattr(self, attrname)))
             return getattr(self, attrname)
         
@@ -1060,7 +1060,7 @@ class Virta:
             
             Sinse currently the game API only provides offers open to everyone,
             and does not include corporate or private ones, this method is not 
-            very useful.
+            very useful yet.
         
         Todo:
             Implement a proper integer linear programming algorithm to get a
@@ -1777,7 +1777,7 @@ class Virta:
                 unit_class = class_rent['unit_class_id']
             else:
                 return
-        print(unit_class)
+        
         change = 'rent_up' if rent_up else 'rent_down'
         url = self.domain_ext + 'politics/%s/%s/%d' % (
                   change, city_id, unit_class)
@@ -1915,4 +1915,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    v.city_change_rent(422996, 'Сеть коммуникационных вышек', rent_up=1)

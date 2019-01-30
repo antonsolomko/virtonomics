@@ -481,6 +481,27 @@ class MyVirta(Virta):
         return current_research
     
     
+    ### UNDER DEVELOPMENT ###
+    
+    def manage_shop(self, shop_id):
+        """"""
+        
+        supply_contracts = self.supply_contracts(shop_id)
+        categories = set(c['shop_goods_category_id'] for c in supply_contracts.values())
+        products = self.goods(category_id=categories)
+        for product_id, product in products.items():
+            print(product['name'], end=' ')
+            product_contracts = supply_contracts(product_id=product_id)
+            offers = self.offers(product_id)(brandname_id=None)
+            print(len(offers))
+        
+    
+    def manage_shops(self):
+        for shop_id in self.units(unit_class_kind='shop'):
+            self.manage_shop(shop_id)
+    
+    
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
+    p = v.manage_shop(7402726)
