@@ -250,6 +250,7 @@ class Virta:
     __pagesize = '&pagesize=1000000'
     api = {
         'cities': 'geo/city/browse',
+        'city_rent': 'geo/city/rent?city_id={city_id}',
         'company': 'my/company',
         'company_finance': 'company/report/finance/byitem?id={company_id}',
         'countries': 'geo/country/browse',
@@ -285,6 +286,7 @@ class Virta:
         self.__produce = {}
         self.__unit_summary = {}
         self.__technologies = {}
+        self.__city_rent = {}
     
     
     def __del__(self):
@@ -431,6 +433,19 @@ class Virta:
             unit_info['forecast'] = self.session.get(url_f).json(cls=Decoder)
             self.__unit_summary[unit_id] = unit_info
         return self.__unit_summary[unit_id]
+    
+    
+    def city_rent(self, city_id):
+        """Стоимость аренды в городе
+        
+        Returns:
+            List.
+        """
+        
+        if city_id not in self.__city_rent:
+            url = self.api['city_rent'].format(city_id=city_id)
+            self.__city_rent[city_id] = List(self.session.get(url).json(cls=Decoder))
+        return self.__city_rent[city_id]
     
     
     def offers(self, product_id):
@@ -1042,6 +1057,10 @@ class Virta:
             rounded. This may lead to some inaccuracy in the result, especially
             for small amonts of equipment. Thus it is recommended to allow some
             margin for target quality to compensate possible inaccuracy.
+            
+            Sinse currently the game API only provides offers open to everyone,
+            and does not include corporate or private ones, this method is not 
+            very useful.
         
         Todo:
             Implement a proper integer linear programming algorithm to get a
@@ -1719,7 +1738,7 @@ class Virta:
         return self.session.get(url)
 
     
-    def city_change_rent(self, city_id, unittype_name, rent_up=False):
+    def city_change_rent(self, city_id, unit_class, rent_up=False):
         """Change rent price.
         
         Note:
@@ -1729,54 +1748,39 @@ class Virta:
         
         Arguments:
             city_id (int): City_id.
-            unittype_name (str): Unit type. Can take values: 
-                'office' (or equivalently 'Офис'), 
+            unit_class (str or int): Unit class kind or unit class name, or 
+                unit class id. Can take values: 
+                'office' ('Офис'), 
                 'shop' ('Магазин'),
-                'gas_station' ('Автозаправочная станция'), 
-                'education' ('Образовательное учреждение'), 
-                'service' ('Сфера услуг'),
+                'fuel' ('Автозаправочная станция'), 
+                'educational' ('Образовательное учреждение'), 
+                'service_light' ('Сфера услуг'),
                 'restaurant' ('Ресторан'),
                 'repair' ('Авторемонтная мастерская'),
                 'it' ('IT-центр'),
                 'warehouse' ('Склад'),
                 'villa' ('Вилла'),
-                'communication' ('Сеть коммуникационных вышек')
-            rent_up (bool): Up/down flag. If True, the rent price is increased,
-                decreased otherwise.
+                'network' ('Сеть коммуникационных вышек')
+            rent_up (bool): Up/down flag. If True, the rent price will be 
+                increased, otherwise decreased.
         
         Returns:
             POST request responce. 
         """
         
-        codes = {
-            'Офис': 1815,
-            'Магазин': 1885,
-            'Автозаправочная станция': 422789,
-            'Образовательное учреждение': 423693,
-            'Сфера услуг': 348193,
-            'Ресторан': 373182,
-            'Авторемонтная мастерская': 422811,
-            'IT-центр': 423353,
-            'Склад': 2013,
-            'Вилла': 100,
-            'Сеть коммуникационных вышек': 423768
-            }
-        #Alternative project names
-        codes['office'] = codes['Офис']
-        codes['shop'] = codes['Магазин']
-        codes['gas_station'] = codes['Автозаправочная станция']
-        codes['education'] = codes['Образовательное учреждение']
-        codes['service'] = codes['Сфера услуг']
-        codes['restaurant'] = codes['Ресторан']
-        codes['repair'] = codes['Авторемонтная мастерская']
-        codes['it'] = codes['IT-центр']
-        codes['warehouse'] = codes['Склад']
-        codes['villa'] = codes['Вилла']
-        codes['communication'] = codes['Сеть коммуникационных вышек']
-
+        if not isinstance(unit_class, int):
+            city_rent = self.city_rent(city_id)
+            class_rent = city_rent.select(unit_class_kind=unit_class)
+            if not class_rent:
+                class_rent = city_rent.select(unit_class_name=unit_class)
+            if class_rent:
+                unit_class = class_rent['unit_class_id']
+            else:
+                return
+        print(unit_class)
         change = 'rent_up' if rent_up else 'rent_down'
         url = self.domain_ext + 'politics/%s/%s/%d' % (
-                  change, city_id, codes[unittype_name])
+                  change, city_id, unit_class)
         self.session.get(url)
     
     
@@ -1911,3 +1915,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    v.city_change_rent(422996, 'Сеть коммуникационных вышек', rent_up=1)

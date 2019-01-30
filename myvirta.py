@@ -141,18 +141,19 @@ class MyVirta(Virta):
                 self.city_money_project(city['id'], 'construction')
             
             if days_to_election > 13:
-                self.city_change_council_tax(city['id'])
+                self.city_change_council_tax(city['id'], increase=True)
+            else:
+                self.city_change_council_tax(city['id'], increase=False)
             
-            self.city_change_rent(city['id'], 'office', rent_up=1)
-            self.city_change_rent(city['id'], 'shop', rent_up=0)
-            self.city_change_rent(city['id'], 'gas_station', rent_up=0)
-            self.city_change_rent(city['id'], 'education', rent_up=0)
-            self.city_change_rent(city['id'], 'service', rent_up=0)
-            self.city_change_rent(city['id'], 'restaurant', rent_up=0)
-            self.city_change_rent(city['id'], 'repair', rent_up=0)
-            self.city_change_rent(city['id'], 'warehouse', 
-                                  rent_up=not is_industrial)
-            self.city_change_rent(city['id'], 'villa', rent_up=1)
+            self.city_change_rent(city['id'], 'office', rent_up=True)
+            self.city_change_rent(city['id'], 'shop', rent_up=False)
+            self.city_change_rent(city['id'], 'fuel', rent_up=False)
+            self.city_change_rent(city['id'], 'educational', rent_up=False)
+            self.city_change_rent(city['id'], 'service_light', rent_up=False)
+            self.city_change_rent(city['id'], 'restaurant', rent_up=False)
+            self.city_change_rent(city['id'], 'repair', rent_up=False)
+            self.city_change_rent(city['id'], 'warehouse', rent_up=not is_industrial)
+            self.city_change_rent(city['id'], 'villa', rent_up=True)
             
             if days_to_election == 0:
                 shops = self.units(city_id=city['id'], unit_class_kind='shop')
