@@ -551,6 +551,59 @@ class Virta:
         return List(self.session.get(url).json(cls=Decoder).get('data', []))
     
     
+    def trading_hall(self, shop_id):
+        url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
+        page = self.session.tree(url)
+        xp = '//input[@type="text"]/../..'
+        rows = page.xpath(xp)
+        xps = {
+            'ids': './td[2]/input/@name',
+            'product_id': './td[3]/a/@href',
+            'sold': './td[4]/a/text()',
+            'purchase': './td[5]/text()',
+            'stock': './td[6]/text()',
+            'quality': './td[7]/text()',
+            'brand': './td[8]/text()',
+            'cost': './td[9]/text()',
+            'price': './td[10]/input/@value',
+            'market_share': './td[11]/text()',
+            'avg_price': './td[12]/text()',
+            'avg_quality': './td[13]/text()',
+            'avg_brand': './td[14]/text()'
+            }
+        result = {}
+        for row in rows:
+            res = {name: str(row.xpath(xp)[0]) for name, xp in xps.items()}
+            res['ids'] = '{' + res['ids'].split('}')[0].split('{')[-1] + '}'
+            res['product_id'] = int(res['product_id'].split('product_id=')[-1].split('&')[0])
+            res['sold'] = int(res['sold'].replace(' ', ''))
+            res['purchase'] = int(res['purchase'].replace(' ', '').replace('[', '').replace(']', ''))
+            res['stock'] = int(res['stock'].replace(' ', ''))
+            try:
+                res['quality'] = float(res['quality'])
+            except ValueError:
+                res['quality'] = None
+            try:
+                res['brand'] = float(res['brand'])
+            except ValueError:
+                res['brand'] = None
+            res['cost'] = res['cost'].replace(' ', '').replace('$', '')
+            try:
+                res['cost'] = float(res['cost'])
+            except ValueError:
+                res['cost'] = None
+            res['price'] = float(res['price'])
+            res['market_share'] = float(res['market_share'].replace(' ', '').replace('%', '')) / 100
+            res['avg_price'] = float(res['avg_price'].replace(' ', '').replace('$', ''))
+            res['avg_quality'] = float(res['avg_quality'])
+            res['avg_brand'] = float(res['avg_brand'])
+            
+            result[res['product_id']] = res
+            
+        return result
+        
+    
+    
     # General purpose unit management methods
     
     def set_technology(self, unit_id, level, max_price=0):
