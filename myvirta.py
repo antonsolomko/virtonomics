@@ -27,6 +27,7 @@ class MyVirta(Virta):
     
     def set_innovation(self, unit_id, innovation_name, **kwargs):
         alternative_names = {
+            'agitation': 'Политическая агитация',
             'lab1': 'Электронная библиотека',
             'lab2': 'Сотрудничество с CERN',
             'lab3': 'Производственная практика для ученых',
@@ -61,6 +62,13 @@ class MyVirta(Virta):
             3329984: ('farm', 'orchard'),
             8393314: 'educational'
             }
+        # Find supplier for restaurants
+        offers = {i: o for i, o in self.offers(373198).items()
+                  if o['price'] <= 2000000 and o['quality'] > 60 and o['free_for_buy'] > 300}
+        if offers:
+            offer_id = min(offers, key=lambda i: offers[i]['price'])
+            suppliers[offer_id] = 'restaurant'
+        
         for offer_id, unit_class in suppliers.items():
             units = [u['id'] for u in self.units(unit_class_kind=unit_class).values()]
             self.repair_equipment_all(offer_id, units)
@@ -504,4 +512,4 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
-    p = v.manage_shop(7402726)
+    #p = v.manage_shop(7402726)

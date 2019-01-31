@@ -1058,9 +1058,8 @@ class Virta:
             for small amonts of equipment. Thus it is recommended to allow some
             margin for target quality to compensate possible inaccuracy.
             
-            Sinse currently the game API only provides offers open to everyone,
-            and does not include corporate or private ones, this method is not 
-            very useful yet.
+            Beware that currently the game API only provides offers open to 
+            everyone, and does not include corporate or private ones.
         
         Todo:
             Implement a proper integer linear programming algorithm to get a
@@ -1076,8 +1075,9 @@ class Virta:
                 transportation cost and customs duties).
             target_quality (float): Target equipment quality. Defaults to None
                 (the quality required by technological level).
-            target_amount (int): Target equipment amount. Defaults to None
-                (remain the amount installed already).
+            target_amount (int or 'max'): Target equipment amount. If 
+                target_amount = 'max', the maximum amount will be installed.
+                Defaults to None (remain the amount installed already).
             max_price (float): Maximum average price per equipment piece to be
                 ordered. Defaults to None (no constraint).
             target_quality_max (float): Resulting quality upper bound.
@@ -1116,6 +1116,8 @@ class Virta:
         
         if target_amount is None:
             target_amount = equipment_count
+        elif target_amount == 'max':
+            target_amount = equipment_max
         
         bounds = [(0, equipment_count if destroy else 0)]
         bounds += [(0, o['free_for_buy']) for o in offers]
