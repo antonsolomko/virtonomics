@@ -264,8 +264,6 @@ class MyVirta(Virta):
     
     
     def sort_sale_contracts(self, unit_id):
-        """"""
-        
         products = {}
         contracts = self.sale_contracts(unit_id)
         sort_key = lambda c: (c['consumer_company_id'] != self.company['id'],
@@ -509,7 +507,34 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
+    def adjust_sale_prices(self, delta=0.02):
+        units = self.units(unit_class_kind='warehouse', id=7429787)
+        for unit_id in units:
+            sale_offers = self.sale_offers(unit_id)
+            sale_contracts = self.sale_contracts(unit_id)
+            for product_id, offer in sale_offers.items():
+                contracts = sale_contracts(product_id=product_id)
+                if not offer['stock']:
+                    continue
+                if offer['constraint'] in (1,2,5) or any(
+                        c['consumer_company_id'] != self.company['id'] 
+                        or c['consumer_unit_class_symbol'] == 'shop'
+                        for c in contracts):
+                    # Adjust price
+                    total_order = sum(c['party_quantity'] for c in contracts)
+                    if total_order > offer['stock'] / 10:
+                        offer['price'] *= 1 + delta
+                    else:
+                        offer['price'] *= 1 - delta
+                    offer['price'] = max(offer['price'], offer['cost'])
+                else:
+                    if offer['cost']:
+                        offer['price'] = offer['cost']
+            self.set_sale_offers(unit_id, sale_offers)
+    
+    
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
     #p = v.manage_shop(7402726)
+    c = v.adjust_sale_prices()

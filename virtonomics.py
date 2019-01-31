@@ -551,6 +551,51 @@ class Virta:
         return List(self.session.get(url).json(cls=Decoder).get('data', []))
     
     
+    def sale_offers(self, unit_id):
+        url = self.domain_ext + 'unit/view/%s/sale' % unit_id
+        page = self.session.tree(url)
+        xp = '//input[contains(@name,"[price]")]/../..'
+        rows = page.xpath(xp)
+        subtable_xp = './/table//td[contains(.,"%s")]/../td[2]/text()'
+        xps = {
+            'product_id': './td/input[@type="checkbox"]/@value',
+            'stock': subtable_xp % 'Количество',
+            'quality': subtable_xp % 'Качество',
+            'cost': subtable_xp % 'Себестоимость',
+            'price': './td/input[contains(@name,"[price]")]/@value',
+            'max_qty': './td//input[contains(@name,"[max_qty]")]/@value',
+            'constraint': './td/select[contains(@name,"[constraint]")]/option[@selected]/@value'
+            }
+        result = {}
+        for row in rows:
+            res = {name: str(row.xpath(xp)[0]) for name, xp in xps.items()}
+            res['trademark'] = int(res['product_id'].split('/')[-1])
+            res['product_id'] = int(res['product_id'].split('/')[0])
+            res['stock'] = res['stock'].replace(' ', '')
+            try:
+                res['stock'] = float(res['stock'])
+            except ValueError:
+                res['stock'] = 0
+            res['cost'] = res['cost'].replace(' ', '').replace('$', '')
+            for name in ('quality', 'cost'):
+                try:
+                    res[name] = float(res[name])
+                except ValueError:
+                    res[name] = None
+            res['price'] = float(res['price'])
+            try:
+                res['max_qty'] = int(res['max_qty'])
+            except ValueError:
+                res['max_qty'] = 0
+            res['constraint'] = int(res['constraint'])
+            company_xp = './td//select[contains(@name,"[company]")]/option/@value'
+            res['company'] = [int(c) for c in row.xpath(company_xp)]
+            
+            result[res['product_id']] = res
+            
+        return Dict(result)(trademark=0)
+    
+    
     def trading_hall(self, shop_id):
         url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
         page = self.session.tree(url)
@@ -558,7 +603,7 @@ class Virta:
         rows = page.xpath(xp)
         xps = {
             'ids': './td[2]/input/@name',
-            'product_id': './td[3]/a/@href',
+            'product_id': './td[3]/a/@href',  # trademark?
             'sold': './td[4]/a/text()',
             'purchase': './td[5]/text()',
             'stock': './td[6]/text()',
@@ -579,19 +624,12 @@ class Virta:
             res['sold'] = int(res['sold'].replace(' ', ''))
             res['purchase'] = int(res['purchase'].replace(' ', '').replace('[', '').replace(']', ''))
             res['stock'] = int(res['stock'].replace(' ', ''))
-            try:
-                res['quality'] = float(res['quality'])
-            except ValueError:
-                res['quality'] = None
-            try:
-                res['brand'] = float(res['brand'])
-            except ValueError:
-                res['brand'] = None
             res['cost'] = res['cost'].replace(' ', '').replace('$', '')
-            try:
-                res['cost'] = float(res['cost'])
-            except ValueError:
-                res['cost'] = None
+            for name in ('quality', 'brand', 'cost'):
+                try:
+                    res[name] = float(res[name])
+                except ValueError:
+                    res[name] = None
             res['price'] = float(res['price'])
             res['market_share'] = float(res['market_share'].replace(' ', '').replace('%', '')) / 100
             res['avg_price'] = float(res['avg_price'].replace(' ', '').replace('$', ''))
@@ -600,7 +638,7 @@ class Virta:
             
             result[res['product_id']] = res
             
-        return result
+        return Dict(result)
         
     
     
@@ -849,7 +887,7 @@ class Virta:
                 a dictionary and may contain the following keys:
                     price (float): sale price (defaults to 1 if not present);
                     max_qty (int): maximal amount to be sold to one consumer
-                        (no bound if not present);
+                        (no bound if not present or 0);
                     constraint (int, 0..5): may take values
                         0 - don't sale,
                         1 - for everyone,
