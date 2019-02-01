@@ -135,6 +135,8 @@ class MyVirta(Virta):
             if is_industrial:
                 self.city_money_project(city['id'], 'trade_union')
                 self.city_money_project(city['id'], 'salary_down')
+                if days_to_election % 26 == 0:
+                    self.city_money_project(city['id'], 'transport')
             
             # Run city festival before election
             if days_to_election == 0 or days_to_election == 13:
@@ -210,7 +212,7 @@ class MyVirta(Virta):
         for country in countries:
             print('\n' + country['country_name'], self.days_to_refresh)
             if self.days_to_refresh <= 26:
-                #self.country_money_project(country['id'], 'education')
+                self.country_money_project(country['id'], 'education')
                 self.country_money_project(country['id'], 'construction')
             self.country_money_projects(
                 country['id'], ['sport', 'food', 'ecology', 'transport'])
@@ -557,20 +559,24 @@ class MyVirta(Virta):
                         percent = delta
                     
                     factor = 1 + percent
-                    print('%.2f %+.2f%%' % (r*t/s, 100 * percent))
+                    print('%+.2f%%' % (100 * percent))
                     offer['price'] *= factor
+                    if percent > 0:
+                        offer['price'] -= 0.01
                     offer['price'] = max(offer['price'], offer['cost'])
                 elif offer['cost']:
                         print('x', markup_factor)
                         offer['price'] = markup_factor * offer['cost']
                 offer['price'] = round(offer['price'], 2)
             else:
-                if offer['constraint'] == 0 and not contracts:
+                if offer['constraint'] in (0,3) and not contracts:
                     offer['constraint'] = 0  # Hide empty offers
-        #self.set_sale_offers(unit_id, sale_offers)
+                    offer['price'] = 0
+        self.set_sale_offers(unit_id, sale_offers)
         
     
-    def manage_sale_offers_all(self, *, unit_class=None, delta=0, markup=0.1):
+    def manage_sale_offers_all(self, unit_class=None, delta=0, markup=0.1,
+                               exception_flag='[M]'):
         print('\nADJUSTING SALE OFFERS')
         if not unit_class:
             unit_class = [
@@ -584,11 +590,10 @@ class MyVirta(Virta):
                 'warehouse',
                 'workshop',
                 ]
-        ecxeptions = [7424134, 6745609, 6749443]
         units = self.units(unit_class_kind=unit_class)
         for unit_id, unit in units.items():
             print(unit['id'], unit['name'])
-            if unit_id in ecxeptions:
+            if exception_flag and exception_flag in unit['name']:
                 print('  skip')
             else:
                 mrkp = 0 if unit['unit_class_kind'] == 'warehouse' else markup
@@ -599,4 +604,3 @@ if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
     #p = v.manage_shop(7402726)
-    v.manage_sale_offers_all(delta=0.05, unit_class='warehouse')

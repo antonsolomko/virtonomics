@@ -2043,4 +2043,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    o = v.sale_offers(6751806)
