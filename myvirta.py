@@ -66,7 +66,7 @@ class MyVirta(Virta):
         offers = {i: o for i, o in self.offers(373198).items()
                   if o['price'] <= 2000000 and o['quality'] > 60 and o['free_for_buy'] > 300}
         if offers:
-            offer_id = min(offers, key=lambda i: offers[i]['price'])
+            offer_id = min(offers, key=lambda i: offers[i]['price']/offers[i]['quality'])
             suppliers[offer_id] = 'restaurant'
         
         for offer_id, unit_class in suppliers.items():
@@ -481,8 +481,8 @@ class MyVirta(Virta):
             self.rename_unit(lab_id, '-')
             self.holiday_set(lab_id)
         
-        #for lab_id in labs:
-        #    self.set_innovation(lab_id, 'lab_equipment')
+        for lab_id in labs:
+            self.set_innovation(lab_id, 'lab_equipment')
             
         return current_research
     
@@ -507,15 +507,25 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def adjust_sale_prices(self, delta=0.02):
-        units = self.units(unit_class_kind='warehouse', id=7429787)
-        for unit_id in units:
+    def adjust_sale_prices(self, delta=0.01):
+        ecxeptions = [7424134, 6745609, 6749443]
+        assert 0 <= delta < 1, 'delta should be in range 0 <= delta < 1'
+        factor = 1 + delta
+        percent = round(delta * 100)
+        unit_classes = ['warehouse']
+        units = self.units(unit_class_kind=unit_classes)
+        print('\nADJUSTING SALE PRICES')
+        for unit_id, unit in units.items():
+            if unit_id in ecxeptions:
+                continue
+            print(unit['id'], unit['name'])
             sale_offers = self.sale_offers(unit_id)
             sale_contracts = self.sale_contracts(unit_id)
             for product_id, offer in sale_offers.items():
                 contracts = sale_contracts(product_id=product_id)
                 if not offer['stock']:
                     continue
+                print(' ', offer['product_name'], end=' ')
                 if offer['constraint'] in (1,2,5) or any(
                         c['consumer_company_id'] != self.company['id'] 
                         or c['consumer_unit_class_symbol'] == 'shop'
@@ -523,13 +533,20 @@ class MyVirta(Virta):
                     # Adjust price
                     total_order = sum(c['party_quantity'] for c in contracts)
                     if total_order > offer['stock'] / 10:
-                        offer['price'] *= 1 + delta
+                        print('+%.0f%%' % percent)
+                        offer['price'] *= factor
                     else:
-                        offer['price'] *= 1 - delta
+                        print('-%.0f%%' % percent)
+                        offer['price'] /= factor
                     offer['price'] = max(offer['price'], offer['cost'])
-                else:
-                    if offer['cost']:
+                elif offer['cost']:
+                    if unit['unit_class_kind'] == 'warehouse':
+                        print('x 1')
                         offer['price'] = offer['cost']
+                    else:
+                        print('x 1.1')
+                        offer['price'] = 1.1 * offer['cost']
+                offer['price'] = round(offer['price'], 2)
             self.set_sale_offers(unit_id, sale_offers)
     
     
@@ -537,4 +554,4 @@ if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
     #p = v.manage_shop(7402726)
-    c = v.adjust_sale_prices()
+    #v.adjust_sale_prices()

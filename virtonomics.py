@@ -554,11 +554,18 @@ class Virta:
     def sale_offers(self, unit_id):
         url = self.domain_ext + 'unit/view/%s/sale' % unit_id
         page = self.session.tree(url)
-        xp = '//input[contains(@name,"[price]")]/../..'
-        rows = page.xpath(xp)
-        subtable_xp = './/table//td[contains(.,"%s")]/../td[2]/text()'
+        row_xp = '//input[contains(@name,"[price]")]/../..'
+        rows = page.xpath(row_xp)
+        
+        columns = [None]
+        for th in rows[0].xpath('./../tr/th'):
+            th = th.xpath('./text()')
+            columns.append(str(th[0]) if th else None)
+        stock_i = columns.index('На складе')
+        subtable_xp = './td[%d]/table//td[contains(.,"%%s")]/../td[2]/text()' % stock_i
+        
         xps = {
-            'product_id': './td/input[@type="checkbox"]/@value',
+            'product_name': './td/a[contains(@href,"globalreport/marketing")]/text()',
             'stock': subtable_xp % 'Количество',
             'quality': subtable_xp % 'Качество',
             'cost': subtable_xp % 'Себестоимость',
@@ -569,8 +576,17 @@ class Virta:
         result = {}
         for row in rows:
             res = {name: str(row.xpath(xp)[0]) for name, xp in xps.items()}
-            res['trademark'] = int(res['product_id'].split('/')[-1])
-            res['product_id'] = int(res['product_id'].split('/')[0])
+            product_xp = './td/input[@type="checkbox"]/@value'
+            product_str = row.xpath(product_xp)
+            if product_str:
+                product_str = str(product_str[0])
+                res['product_id'] = int(product_str.split('/')[0])
+                res['trademark'] = int(product_str.split('/')[-1])
+            else:
+                product_xp = './td/a[contains(@href,"product_id")]/@href'
+                product_str = (row.xpath(product_xp)[0])
+                res['product_id'] = int(product_str.split('product_id=')[-1].split('#')[0])
+                res['trademark'] = 0
             res['stock'] = res['stock'].replace(' ', '')
             try:
                 res['stock'] = float(res['stock'])
