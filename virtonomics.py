@@ -556,26 +556,33 @@ class Virta:
         page = self.session.tree(url)
         row_xp = '//input[contains(@name,"[price]")]/../..'
         rows = page.xpath(row_xp)
+        if not rows:
+            return {}
         
-        columns = [None]
+        column_names = [None]
         for th in rows[0].xpath('./../tr/th'):
             th = th.xpath('./text()')
-            columns.append(str(th[0]) if th else None)
-        stock_i = columns.index('На складе')
-        subtable_xp = './td[%d]/table//td[contains(.,"%%s")]/../td[2]/text()' % stock_i
+            column_names.append(str(th[0]) if th else None)
+        stock_column = column_names.index('На складе')
         
+        subtable_xp = './td[%d]/table//td[contains(.,"%s")]/../td[2]/text()'
         xps = {
             'product_name': './td/a[contains(@href,"globalreport/marketing")]/text()',
-            'stock': subtable_xp % 'Количество',
-            'quality': subtable_xp % 'Качество',
-            'cost': subtable_xp % 'Себестоимость',
+            'stock': subtable_xp % (stock_column, 'Количество'),
+            'quality': subtable_xp % (stock_column, 'Качество'),
+            'cost': subtable_xp % (stock_column, 'Себестоимость'),
             'price': './td/input[contains(@name,"[price]")]/@value',
             'max_qty': './td//input[contains(@name,"[max_qty]")]/@value',
             'constraint': './td/select[contains(@name,"[constraint]")]/option[@selected]/@value'
             }
+        if 'Выпуск' in column_names:
+            produce_column = column_names.index('Выпуск')
+            xps['production'] = subtable_xp % (produce_column, 'Количество')
+        
         result = {}
         for row in rows:
             res = {name: str(row.xpath(xp)[0]) for name, xp in xps.items()}
+            
             product_xp = './td/input[@type="checkbox"]/@value'
             product_str = row.xpath(product_xp)
             if product_str:
@@ -584,28 +591,40 @@ class Virta:
                 res['trademark'] = int(product_str.split('/')[-1])
             else:
                 product_xp = './td/a[contains(@href,"product_id")]/@href'
-                product_str = (row.xpath(product_xp)[0])
+                product_str = str(row.xpath(product_xp)[0])
                 res['product_id'] = int(product_str.split('product_id=')[-1].split('#')[0])
                 res['trademark'] = 0
+                
             res['stock'] = res['stock'].replace(' ', '')
             try:
                 res['stock'] = float(res['stock'])
             except ValueError:
                 res['stock'] = 0
+                
             res['cost'] = res['cost'].replace(' ', '').replace('$', '')
             for name in ('quality', 'cost'):
                 try:
                     res[name] = float(res[name])
                 except ValueError:
                     res[name] = None
+                    
             res['price'] = float(res['price'])
             try:
                 res['max_qty'] = int(res['max_qty'])
             except ValueError:
                 res['max_qty'] = 0
+                
             res['constraint'] = int(res['constraint'])
+            
             company_xp = './td//select[contains(@name,"[company]")]/option/@value'
             res['company'] = [int(c) for c in row.xpath(company_xp)]
+            
+            if 'production' in res:
+                res['production'] = res['production'].replace(' ', '')
+                try:
+                    res['production'] = float(res['production'])
+                except ValueError:
+                    res['production'] = 0
             
             result[res['product_id']] = res
             
@@ -2024,3 +2043,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    o = v.sale_offers(6751806)

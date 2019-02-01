@@ -3,6 +3,7 @@
 """
 
 from virtonomics import *
+import math
 
 
 #@for_all_methods(logger)
@@ -506,52 +507,96 @@ class MyVirta(Virta):
         for shop_id in self.units(unit_class_kind='shop'):
             self.manage_shop(shop_id)
     
-    
-    def adjust_sale_prices(self, delta=0.01):
-        ecxeptions = [7424134, 6745609, 6749443]
-        assert 0 <= delta < 1, 'delta should be in range 0 <= delta < 1'
-        factor = 1 + delta
-        percent = round(delta * 100)
-        unit_classes = ['warehouse']
-        units = self.units(unit_class_kind=unit_classes)
-        print('\nADJUSTING SALE PRICES')
-        for unit_id, unit in units.items():
-            if unit_id in ecxeptions:
-                continue
-            print(unit['id'], unit['name'])
-            sale_offers = self.sale_offers(unit_id)
-            sale_contracts = self.sale_contracts(unit_id)
-            for product_id, offer in sale_offers.items():
-                contracts = sale_contracts(product_id=product_id)
-                if not offer['stock']:
-                    continue
+
+    def manage_sale_offers(self, unit_id, delta=0, markup=0.1, target_ratio=10):
+        """Manage sale offers.
+        
+        Note:
+            Supported unit kinds (all that have "sale" bookmark): 'animalfarm', 
+            'farm', 'fishingbase', 'mill',  'mine', 'orchard', 'sawmill', 
+            'warehouse', 'workshop'. Passing units of other kind may cause an 
+            error. No check is made.
+        
+        Arguments:
+            unit_id (int): Unit_id.
+            delta (float 0..1): For products sold to shops or other companies
+                the selling price will be changed by delta, depending on the 
+                ratio between stock and orders amount (increased if demand is 
+                high, and decreased otherwise). Defaults to 0.
+            markup (float): Industrial products for internal use get base 
+                markup to their cost price. Defaults to 0.1 (10% markup).
+        
+        Todo:
+            Price change algorithm to be defined.
+        """
+        
+        assert 0 <= delta < 1, 'delta should be in the range 0 <= delta < 1'
+        markup_factor = 1 + markup
+        sale_offers = self.sale_offers(unit_id)
+        sale_contracts = self.sale_contracts(unit_id)
+        
+        for product_id, offer in sale_offers.items():
+            contracts = sale_contracts(product_id=product_id)
+            if offer['stock']:
                 print(' ', offer['product_name'], end=' ')
+                if offer['constraint'] == 0:
+                    offer['constraint'] = 3
                 if offer['constraint'] in (1,2,5) or any(
                         c['consumer_company_id'] != self.company['id'] 
                         or c['consumer_unit_class_symbol'] == 'shop'
                         for c in contracts):
                     # Adjust price
-                    total_order = sum(c['party_quantity'] for c in contracts)
-                    if total_order > offer['stock'] / 10:
-                        print('+%.0f%%' % percent)
-                        offer['price'] *= factor
+                    r = target_ratio
+                    s = offer['stock']
+                    t = sum(c['party_quantity'] for c in contracts)  # total order
+                    if t < s:
+                        percent = delta * math.sin(
+                                  0.5*math.pi * (math.log(1 + r*(r-2)*t/s) / math.log(r-1) - 1)
+                                  )
                     else:
-                        print('-%.0f%%' % percent)
-                        offer['price'] /= factor
+                        percent = delta
+                    
+                    factor = 1 + percent
+                    print('%.2f %+.2f%%' % (r*t/s, 100 * percent))
+                    offer['price'] *= factor
                     offer['price'] = max(offer['price'], offer['cost'])
                 elif offer['cost']:
-                    if unit['unit_class_kind'] == 'warehouse':
-                        print('x 1')
-                        offer['price'] = offer['cost']
-                    else:
-                        print('x 1.1')
-                        offer['price'] = 1.1 * offer['cost']
+                        print('x', markup_factor)
+                        offer['price'] = markup_factor * offer['cost']
                 offer['price'] = round(offer['price'], 2)
-            self.set_sale_offers(unit_id, sale_offers)
+            else:
+                if offer['constraint'] == 0 and not contracts:
+                    offer['constraint'] = 0  # Hide empty offers
+        #self.set_sale_offers(unit_id, sale_offers)
+        
+    
+    def manage_sale_offers_all(self, *, unit_class=None, delta=0, markup=0.1):
+        print('\nADJUSTING SALE OFFERS')
+        if not unit_class:
+            unit_class = [
+                'animalfarm',
+                'farm',
+                'fishingbase',
+                'mill',
+                'mine',
+                'orchard',
+                'sawmill',
+                'warehouse',
+                'workshop',
+                ]
+        ecxeptions = [7424134, 6745609, 6749443]
+        units = self.units(unit_class_kind=unit_class)
+        for unit_id, unit in units.items():
+            print(unit['id'], unit['name'])
+            if unit_id in ecxeptions:
+                print('  skip')
+            else:
+                mrkp = 0 if unit['unit_class_kind'] == 'warehouse' else markup
+                self.manage_sale_offers(unit_id, delta=delta, markup=mrkp)
     
     
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
     #p = v.manage_shop(7402726)
-    #v.adjust_sale_prices()
+    v.manage_sale_offers_all(delta=0.05, unit_class='warehouse')
