@@ -91,6 +91,16 @@ def date_to_str(date):
     return '%d %s %d' % (date.day, months[date.month], date.year)
 
 
+def transform_xpath(node, xpath, remove=tuple(), tp, default=None):
+    try:
+        res = str(node.xpath(xpath))
+        for s in remove:
+            res = res.replace(s,'')
+        return tp(res)
+    except (IndexError, ValueError):
+        return default
+
+
 class Dict(dict):
     """Extends built-in dict. Values are assumed to be dictionaries.
     
@@ -532,6 +542,75 @@ class Virta:
         data = dict(unit_id=unit_id, product_filter=product_filter)
         url = self.api['supply_contracts'].format(**data)
         return Dict(self.session.get(url).json(cls=Decoder))
+    
+    
+    def supply_orders(self, unit_id):
+        url = self.domain_ext + 'unit/view/%s/supply' % unit_id
+        page = self.session.tree(url)
+        row_xp = '//img[@title="Выбрать поставщика"]/ancestor::tr[last()]'
+        rows = page.xpath(row_xp)
+        base_xp = './/table//td[contains(.,"%s")]/../td[2]/text()'
+        xps = {
+            'product_id': './/@href[contains(.,"supply/create")]',
+            'stock': base_xp % 'Количество',
+            'quality': base_xp % 'Качество',
+            'cost': base_xp % 'Себестоимость',
+            # Not present in some unit types
+            'needed': base_xp % 'Требуется',
+            'brand': base_xp % 'Бренд',
+            'sold': base_xp % 'Продано',
+            'per_client': base_xp % 'Расх. на клиента',
+            }
+        result = {}
+        for row in rows:
+            res = {}
+            for name, xp in xps.items():
+                try:
+                    res[name] = str(row.xpath(xp)[0])
+                except IndexError:
+                    pass
+            
+            name_xp = './/img[contains(@src,"img/products")]/@alt'
+            try:
+                res['product_name'] = str(row.xpath(name_xp)[0])
+            except:
+                name_xp = '//td/@title'
+                res['product_name'] = str(row.xpath(name_xp)[0])
+                
+            res['product_id'] = int(res['product_id'].split('/')[-1])
+            res['stock'] = int(res['stock'].replace(' ',''))
+            
+            try:
+                res['quality'] = float(res['quality'])
+            except ValueError:
+                res['quality'] = None
+                
+            try:
+                res['cost'] = float(res['cost'].replace(' ','').replace('$',''))
+            except ValueError:
+                res['cost'] = None
+                
+            if 'needed' in res:
+                res['needed'] = int(res['needed'].replace(' ',''))
+                
+            if 'brand' in res:
+                try:
+                    res['brand'] = float(res['brand'])
+                except ValueError:
+                    res['brand'] = None
+                    
+            if 'sold' in res:
+                try:
+                    res['sold'] = int(res['sold'].replace(' ',''))
+                except ValueError:
+                    res['sold'] = 0
+            
+            if 'per_client' in res:
+                res['per_client'] = int(res['per_client'].replace(' ',''))
+            
+            result[res['product_id']] = res
+            
+        return Dict(result)
         
     
     def sale_contracts(self, unit_id, product_id=None):
@@ -554,7 +633,7 @@ class Virta:
     def sale_offers(self, unit_id):
         url = self.domain_ext + 'unit/view/%s/sale' % unit_id
         page = self.session.tree(url)
-        row_xp = '//input[contains(@name,"[price]")]/../..'
+        row_xp = '//input[contains(@name,"[price]")]/ancestor::tr'
         rows = page.xpath(row_xp)
         if not rows:
             return {}
@@ -634,8 +713,8 @@ class Virta:
     def trading_hall(self, shop_id):
         url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
         page = self.session.tree(url)
-        xp = '//input[@type="text"]/../..'
-        rows = page.xpath(xp)
+        row_xp = '//input[@type="text"]/ancestor::tr'
+        rows = page.xpath(row_xp)
         xps = {
             'ids': './td[2]/input/@name',
             'product_id': './td[3]/a/@href',  # trademark?
@@ -2043,3 +2122,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    o = v.supply_orders(7514456)
