@@ -91,16 +91,6 @@ def date_to_str(date):
     return '%d %s %d' % (date.day, months[date.month], date.year)
 
 
-def transform_xpath(node, xpath, remove=tuple(), tp=str, default=None):
-    try:
-        res = str(node.xpath(xpath))
-        for s in remove:
-            res = res.replace(s,'')
-        return tp(res)
-    except (IndexError, ValueError):
-        return default
-
-
 class Dict(dict):
     """Extends built-in dict. Values are assumed to be dictionaries.
     
@@ -2117,4 +2107,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    v.create_supply_contract(7445446, 8404542)
