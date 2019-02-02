@@ -600,7 +600,48 @@ class MyVirta(Virta):
                 self.manage_sale_offers(unit_id, delta=delta, markup=mrkp)
     
     
+    def manage_supply_orders(self, unit_id, days=3, limit_ratio=1.05):
+        products = self.supply_products(unit_id)
+        contracts = self.supply_contracts(unit_id)
+        orders = {}
+        sort_key = lambda c: (-c['quality'], 
+                              c['offer_price'] + c['offer_price'] + c['offer_transport_cost'])
+        for product_id, product in products.items():
+            fund = max(0, product['stock'] - product['needed'])
+            amount_to_order = max(0, days * product['needed'] - fund)
+            amount_to_order = min(amount_to_order, int(limit_ratio * product['needed']))
+            for contract in sorted(contracts(product_id=product_id).values(), key=sort_key):
+                order = {}
+                if contract['supplier_is_seaport'] or contract['free_for_buy'] >= amount_to_order:
+                    order['quantity'] = amount_to_order
+                else:
+                    order['quantity'] = contract['free_for_buy']
+                amount_to_order -= order['quantity']
+                if contract['supplier_company_id'] == self.company['id']:
+                    order['max_price'] = 0
+                    order['max_increase'] = 0
+                else:
+                    order['max_price'] = contract['price_constraint_max']
+                    order['max_increase'] = contract['price_constraint']
+                order['min_quality'] = contract['quality_constraint_min']
+                orders[contract['offer_id']] = order
+                
+        self.set_supply_contracts(unit_id, orders)
+        return products, contracts, orders
+    
+    
+    def manage_supply_orders_all(self, unit_class=None):
+        print('\nSUPPLY')
+        if not unit_class:
+            unit_class = ['animalfarm', 'mill', 'workshop']
+        units = self.units(unit_class_kind=unit_class)
+        for unit_id, unit in units.items():
+            print(unit['id'], unit['name'])
+            self.manage_supply_orders(unit_id)
+            
+    
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
     #p = v.manage_shop(7402726)
+    #v.manage_supply_orders_all()

@@ -91,7 +91,7 @@ def date_to_str(date):
     return '%d %s %d' % (date.day, months[date.month], date.year)
 
 
-def transform_xpath(node, xpath, remove=tuple(), tp, default=None):
+def transform_xpath(node, xpath, remove=tuple(), tp=str, default=None):
     try:
         res = str(node.xpath(xpath))
         for s in remove:
@@ -544,7 +544,7 @@ class Virta:
         return Dict(self.session.get(url).json(cls=Decoder))
     
     
-    def supply_orders(self, unit_id):
+    def supply_products(self, unit_id):
         url = self.domain_ext + 'unit/view/%s/supply' % unit_id
         page = self.session.tree(url)
         row_xp = '//img[@title="Выбрать поставщика"]/ancestor::tr[last()]'
@@ -839,9 +839,8 @@ class Virta:
     
     
     def create_supply_contract(self, unit_id, offer_id, amount=1, max_price=0, 
-                               max_increase=1, min_quality=0, constraint='Rel', 
-                               instant=0):
-        """Add new supply contract.
+                               max_increase=2, min_quality=0, instant=0):
+        """Create new supply contract.
         
         Arguments:
             unit_id (int): Ordering unit id.
@@ -851,9 +850,8 @@ class Virta:
         Keyword arguments:
             amount (int): Amount to be ordered. Defaults to 1.
             max_price (float): If supplier price reaches max_price, the 
-                contract is automatically broken.
-                Valid only if constraint == 'Abs'.
-                Defaults to 0 (no constraint).
+                contract is automatically broken. If 0, max_increase is used 
+                instead to control price changes. Defaults to 0.
             max_increase (int, 0..5): If supplier price growth by mote than
                 a given percentage, the contract is automatically broken.
                 Can take values:
@@ -863,14 +861,10 @@ class Virta:
                     3 (break the contract if price growth by 20% or more), 
                     4 (break the contract if price growth by 50% or more), 
                     5 (break the contract if price growth by 100% or more).
-                Valid only if constraint == 'Rel'.
-                Defaults to 1 (5% bound).
+                Defaults to 2 (10%).
             min_quality (float): If product quality drops below min_quality,
                 no purchase is made, although the contract remains valid.
                 Defaults to 0 (no constraint).
-            constraint (str): Type of constraint. Can take values 'Abs' for 
-                absolute price value or 'Rel' for percetage price change.
-                Defaults to 'Rel'.
             instant (bool): One-time purchase flag. If True, the contract
                 will be automatically broken next day. Defaults to False.
         
@@ -886,7 +880,7 @@ class Virta:
             'priceConstraint': max_price,
             'priceMarkUp': max_increase,
             'qualityMin': min_quality,
-            'constraintPriceType': constraint,
+            'constraintPriceType': 'Abs' if max_price else 'Rel',
             'instant': 'true' if instant else ''
             }
         return self.session.post(url, data=data)
@@ -947,14 +941,13 @@ class Virta:
                 contain the following keys:
                     'quantity' (int): Amount to order (defaults to 0 if not 
                         present).
-                    'constraint' (str): 'Abs' for absolute value or 'Rel' for
-                        percetage change (default 'Rel').
+                    'max_price' (float): Price constraint (default 0 for 
+                        no constraint, if not present). If 0, relative
+                        constraint is used instead.
                     'max_increase' (int, 0..5): Relative price change 
                         constraint, may take values: 0 (no constraint), 
                         1 (5%), 2 (10%), 3 (20%), 4 (50%), 5 (100%).
                         Defaults to 2 if not present.
-                    'max_price' (float): Price constraint (default 0 for 
-                        no constraint, if not present).
                     'min_quality': Minimum qualiy (default 0 for no constraint)
         
         Returns:
@@ -966,7 +959,6 @@ class Virta:
             unit_id = 7358676
             orders = {
                 7585670: {'quantity': 1000,
-                          'constraint': 'Abs',
                           'max_price': 150},
                 8352860: {'quantity': 10000,
                           'max_increase': 1,
@@ -983,9 +975,12 @@ class Virta:
         for offer_id, order in orders.items():
             name = 'supplyContractData[%%s][%s]' % offer_id
             data[name%'party_quantity'] = order.get('quantity', 0)
-            data[name%'constraintPriceType'] = order.get('constraint', 'Rel')
-            data[name%'price_mark_up'] = order.get('max_increase', 2)
             data[name%'price_constraint_max'] = order.get('max_price', 0)
+            data[name%'price_mark_up'] = order.get('max_increase', 2)
+            if data[name%'price_constraint_max']:
+                data[name%'constraintPriceType'] = 'Abs'
+            else:
+                data[name%'constraintPriceType'] = 'Rel'
             data[name%'quality_constraint_min'] = order.get('min_quality', 0)
         return self.session.post(url, data=data)
     
@@ -2122,4 +2117,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    o = v.supply_orders(7514456)
+    v.create_supply_contract(7445446, 8404542)
