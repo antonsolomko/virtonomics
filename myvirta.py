@@ -70,6 +70,13 @@ class MyVirta(Virta):
             offer_id = min(offers, key=lambda i: offers[i]['price']/offers[i]['quality'])
             suppliers[offer_id] = 'restaurant'
         
+        # Find supplier for laboratories
+        offers = {i: o for i, o in self.offers(1528).items()
+                  if o['price'] <= 1000000 and o['quality'] > 60 and o['free_for_buy'] > 450}
+        if offers:
+            offer_id = min(offers, key=lambda i: offers[i]['price']/offers[i]['quality'])
+            suppliers[offer_id] = 'lab'
+        
         for offer_id, unit_class in suppliers.items():
             units = [u['id'] for u in self.units(unit_class_kind=unit_class).values()]
             self.repair_equipment_all(offer_id, units)
@@ -301,6 +308,7 @@ class MyVirta(Virta):
     
     
     def set_technologies(self):
+        print('UPDATE TECHNOLOGIES')
         types = {
             'animalfarm': 27, 
             'farm': 23, 
@@ -310,16 +318,16 @@ class MyVirta(Virta):
             'sawmill': 30,
             'workshop': 30}
         for unit_id in self.units(unit_class_kind=list(types.keys())):
-            unit = self.unit_summary(unit_id)
-            level = unit.get('technology_level', 0)
-            if level > 0:
+            unit = self.unit_summary(unit_id, refresh=True)
+            level = unit.get('technology_level')
+            if level:
                 available_levels = self.investigated_technologies.get(
                                        unit['unit_type_id'], [0])
                 top_level = types[unit['unit_class_kind']]
                 max_level = max(v for v in available_levels if v <= top_level)
                 if max_level > level:
-                    print(unit['id'], unit['name'], level, max_level)
-        pass
+                    print(unit['id'], unit['name'], level, '->', max_level)
+                    self.set_technology(unit_id, max_level)
     
     
     @staticmethod
@@ -487,6 +495,19 @@ class MyVirta(Virta):
         for lab_id in labs:
             self.set_innovation(lab_id, 'lab_equipment')
             
+        self.set_technologies()
+        
+        print('SEND ON HOLIDAY')
+        experimental_units = [unit_id for unit_id, unit in v.units.items() 
+                              if 365385 in v.indicators.get(unit_id, {})]
+        nonexperimental_units = {unit_id: unit for unit_id, unit in v.units.items()
+                                 if unit['name'][0] == '=' 
+                                 and unit_id not in experimental_units
+                                 and not v.unit_summary(unit_id)['on_holiday']}
+        for unit_id, unit in nonexperimental_units.items():
+            print(unit_id, unit['name'])
+            v.holiday_set(unit_id)
+            
         return current_research
     
     
@@ -612,10 +633,13 @@ class MyVirta(Virta):
             amount_to_order = min(amount_to_order, int(limit_ratio * product['needed']))
             for contract in sorted(contracts(product_id=product_id).values(), key=sort_key):
                 order = {}
-                if contract['supplier_is_seaport'] or contract['free_for_buy'] >= amount_to_order:
+                available = contract['free_for_buy']
+                if contract['offer_max_qty'] and contract['offer_max_qty'] < available:
+                    available = contract['offer_max_qty']
+                if contract['supplier_is_seaport'] or available >= amount_to_order:
                     order['quantity'] = amount_to_order
                 else:
-                    order['quantity'] = contract['free_for_buy']
+                    order['quantity'] = available
                 amount_to_order -= order['quantity']
                 if contract['supplier_company_id'] == self.company['id']:
                     order['max_price'] = 0
@@ -642,6 +666,3 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.manage_research()
-    #p = v.manage_shop(7402726)
-    #v.manage_supply_orders_all()

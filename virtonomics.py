@@ -413,6 +413,9 @@ class Virta:
     def unit_summary(self, unit_id, refresh=False):
         """Detailed information about a given unit, including forecast.
         
+        Note:
+            For speed reasons, forecast is temporarily unabled.
+        
         Arguments:
             unit_id (int): Unit id.
             refresh (bool): If True, refresh unit information first.
@@ -429,8 +432,8 @@ class Virta:
             url_s = self.api['unit_summary'].format(unit_id=unit_id)
             unit_info = self.session.get(url_s).json(cls=Decoder)
             # Forecast
-            url_f = self.api['unit_forecast'].format(unit_id=unit_id)
-            unit_info['forecast'] = self.session.get(url_f).json(cls=Decoder)
+            #url_f = self.api['unit_forecast'].format(unit_id=unit_id)
+            #unit_info['forecast'] = self.session.get(url_f).json(cls=Decoder)
             self.__unit_summary[unit_id] = unit_info
         return self.__unit_summary[unit_id]
     
