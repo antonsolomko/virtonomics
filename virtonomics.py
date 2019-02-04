@@ -215,6 +215,7 @@ class Virta:
         domain (str): Defaults to 'https://virtonomica.ru'
         domain_ext (str): '<domain>/<server>/main/'
         driver: Selenium webdriver instance. (not currently supported)
+        elections (Dict): List of running elections.
         goods (Dict): List of retail products.
         indicators (dict): Units indicators (warnings).
         industries (dict): List of inductries.
@@ -397,6 +398,22 @@ class Virta:
                 levels = self.technologies(unittype_id)(status=(1,2))
                 self.investigated_technologies[unittype_id] = [t['level'] for t in levels]
             return self.investigated_technologies
+        
+        elif attrname == 'elections':
+            url = self.domain_ext + 'politics/news'
+            page = self.session.tree(url)
+            xp = '//td[contains(.," г.")]/../td/a[contains(@href,"politics/elections")]/../..'
+            rows = page.xpath(xp)
+            self.elections = Dict()
+            for row in rows:
+                res = {}
+                election_id = int(row.xpath('./td[2]/a/@href')[0].split('/')[-1])
+                res['election_id'] = election_id
+                res['location_name'] = str(row.xpath('./td[2]/a/text()')[0])
+                election_date = str_to_date(row.xpath('./td[3]/text()')[0])
+                res['days_to_election'] = (election_date - TODAY).days - 1
+                self.elections[election_id] = res
+            return self.elections
             
         raise AttributeError(attrname)
     
@@ -1830,25 +1847,6 @@ class Virta:
         return days_left + extra_days
     
     
-    def elections(self, within_days=2):
-        """List of running elections.
-        
-        Arguments:
-            within_days (int): Elections that take place within the given
-                number of days will be returned. Defaults to 2.
-        
-        Returns:
-            list: List of running elections ids.
-        """
-        
-        url = self.domain_ext + 'politics/news'
-        page = self.session.tree(url)
-        xp = '//td[contains(.,"%s")]/../td/a[contains(@href,"politics/elections")]/@href'
-        days = [TODAY + datetime.timedelta(days=d+1) for d in range(within_days)]
-        hrefs = sum((page.xpath(xp % date_to_str(d)) for d in days), [])
-        return [int(href.split('/')[-1]) for href in hrefs]
-    
-    
     def city_change_council_tax(self, city_id, increase=True):
         """Change (increase or decrease) council tax for a given city.
         
@@ -2110,3 +2108,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    e = v.elections

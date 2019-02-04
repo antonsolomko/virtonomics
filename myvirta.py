@@ -226,25 +226,25 @@ class MyVirta(Virta):
     
     
     def vote(self, election_id):
-        """Vote in a given election"""
+        """Vote at a given election"""
         
         url = self.domain_ext + 'politics/elections/%s' % election_id
         page = self.session.tree(url)
-        xpath = '//div[@class="title"][.="%s"]/../../../td/input/@value'
+        xp = '//div[@class="title"][.=%s]/../../../td/input/@value'
         for party_name in self.supported_parties:
             if '"' in party_name:
-                xpath = xpath.replace('"',"'")
-            elif "'" in party_name:
-                xpath = xpath.replace("'",'"')
-            members = page.xpath(xpath % party_name)
+                party_name = "'" + party_name + "'"
+            else:
+                party_name = '"' + party_name + '"'
+            members = page.xpath(xp % party_name)
             if members:
-                print(election_id, 'vote for', party_name)
+                print('  vote for', party_name)
                 supported_candidate = members[0]
                 break
         else:
             candidates = page.xpath('//input[@name="member"]/@value')
             if len(set(candidates)) == 2:
-                print(election_id, 'vote for single candidate')
+                print('  vote for the only candidate')
                 supported_candidate = candidates[0]
             else:
                 return None
@@ -255,12 +255,13 @@ class MyVirta(Virta):
         return self.session.post(url, data=data)
     
     
-    def elections_vote(self, within_days=2):
+    def elections_vote(self):
         """Vote in all elections"""
         
         print('\nELECTIONS')
-        for e in self.elections(within_days=within_days):
-            self.vote(e)
+        for election_id, election in self.elections(days_to_election=(0,1,2)).items():
+            print(election_id, election['location_name'])
+            self.vote(election_id)
     
     
     def politics(self):
@@ -666,3 +667,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    v.elections_vote()
