@@ -72,7 +72,7 @@ class MyVirta(Virta):
         
         # Find supplier for laboratories
         offers = {i: o for i, o in self.offers(1528).items()
-                  if o['price'] <= 1000000 and o['quality'] > 60 and o['free_for_buy'] > 450}
+                  if o['price'] <= 1000000 and o['quality'] > 60 and o['free_for_buy'] > 300}
         if offers:
             offer_id = min(offers, key=lambda i: offers[i]['price']/offers[i]['quality'])
             suppliers[offer_id] = 'lab'
@@ -127,7 +127,7 @@ class MyVirta(Virta):
             is_industrial = city['city_name'] in self.industrial_cities
             days_passed = city['mayor']['mayor_elections_counter']
             days_to_election = self.days_to_election(days_passed)
-            print('\n%s %d / %d' % (city['city_name'], days_to_election, 
+            print('%s %d / %d' % (city['city_name'], days_to_election, 
                                     self.days_to_refresh))
             
             # Run ecological projects once necessary and before election
@@ -192,7 +192,7 @@ class MyVirta(Virta):
         regions = [c for c in self.regions.values() if 'governor' in c 
                    and c['governor']['governor_name']==self.user]
         for region in regions:
-            print('\n' + region['region_name'], self.days_to_refresh)
+            print(region['region_name'], self.days_to_refresh)
             url = self.domain_ext + 'politics/governor/%s' % region['id']
             page = self.session.tree(url)
             for eco_factor in self.eco_factors:
@@ -217,7 +217,7 @@ class MyVirta(Virta):
         countries = [c for c in self.countries.values() if 'president' in c 
                      and c['president']['president_name']==self.user]
         for country in countries:
-            print('\n' + country['country_name'], self.days_to_refresh)
+            print(country['country_name'], self.days_to_refresh)
             if self.days_to_refresh <= 26:
                 self.country_money_project(country['id'], 'education')
                 self.country_money_project(country['id'], 'construction')
@@ -499,15 +499,15 @@ class MyVirta(Virta):
         self.set_technologies()
         
         print('SEND ON HOLIDAY')
-        experimental_units = [unit_id for unit_id, unit in v.units.items() 
-                              if 365385 in v.indicators.get(unit_id, {})]
-        nonexperimental_units = {unit_id: unit for unit_id, unit in v.units.items()
+        experimental_units = [unit_id for unit_id, unit in self.units.items() 
+                              if 365385 in self.indicators.get(unit_id, {})]
+        nonexperimental_units = {unit_id: unit for unit_id, unit in self.units.items()
                                  if unit['name'][0] == '=' 
                                  and unit_id not in experimental_units
-                                 and not v.unit_summary(unit_id)['on_holiday']}
+                                 and not self.unit_summary(unit_id)['on_holiday']}
         for unit_id, unit in nonexperimental_units.items():
             print(unit_id, unit['name'])
-            v.holiday_set(unit_id)
+            self.holiday_set(unit_id)
             
         return current_research
     
