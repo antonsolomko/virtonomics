@@ -342,6 +342,8 @@ class MyVirta(Virta):
                 for lab_id in self.units(unit_class_kind='lab')}
         free_labs = []
         current_research = {}
+        experimental_units = [unit_id for unit_id, unit in self.units.items() 
+                              if 365385 in self.indicators.get(unit_id, {})]
         for lab_id, lab in labs.items():
             lab = self.unit_summary(lab_id)
             unittype_id = lab['project'].get('unit_type_id', 0)
@@ -408,6 +410,7 @@ class MyVirta(Virta):
                             print(' ->', exp_unit['id'], exp_unit['name'])
                             self.set_experemental_unit(lab_id, exp_unit['id'])
                             self.holiday_unset(exp_unit['id'])
+                            experimental_units.append(exp_unit['id'])
                         else:
                             print(' No experimental units available of size',
                                   min_size, 'and technology level', level-1)
@@ -499,8 +502,6 @@ class MyVirta(Virta):
         self.set_technologies()
         
         print('SEND ON HOLIDAY')
-        experimental_units = [unit_id for unit_id, unit in self.units.items() 
-                              if 365385 in self.indicators.get(unit_id, {})]
         nonexperimental_units = {unit_id: unit for unit_id, unit in self.units.items()
                                  if unit['name'][0] == '=' 
                                  and unit_id not in experimental_units
@@ -667,4 +668,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.elections_vote()
+    v.manage_research()
