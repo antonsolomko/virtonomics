@@ -342,6 +342,8 @@ class MyVirta(Virta):
                 for lab_id in self.units(unit_class_kind='lab')}
         free_labs = []
         current_research = {}
+        experimental_units = [unit_id for unit_id, unit in self.units.items() 
+                              if 365385 in self.indicators.get(unit_id, {})]
         for lab_id, lab in labs.items():
             lab = self.unit_summary(lab_id)
             unittype_id = lab['project'].get('unit_type_id', 0)
@@ -366,6 +368,8 @@ class MyVirta(Virta):
                 if stage == 1 and time_left < 2:
                     print(lab_id, self.unittypes[unittype_id]['name'], '1..2')
                     self.set_innovation(lab_id, 'lab2')
+                elif stage == 3 and time_left < 2:
+                    self.rename_unit(lab_id, '-'+self.unittypes[unittype_id]['name'])
                 
                 if (stage == 3 and lab['project']['project_unit_loading'] is not None
                         and lab['project']['project_unit_loading'] < 100):
@@ -408,6 +412,7 @@ class MyVirta(Virta):
                             print(' ->', exp_unit['id'], exp_unit['name'])
                             self.set_experemental_unit(lab_id, exp_unit['id'])
                             self.holiday_unset(exp_unit['id'])
+                            experimental_units.append(exp_unit['id'])
                         else:
                             print(' No experimental units available of size',
                                   min_size, 'and technology level', level-1)
@@ -442,7 +447,7 @@ class MyVirta(Virta):
                     new_research[level].append(unittype_id)
         
         free_labs0 = [lab_id for lab_id in free_labs
-                     if labs[lab_id]['city_id'] in (310400, 422041)]
+                     if labs[lab_id]['city_id'] == 310400]
 
         print(len(free_labs0), 'free laboratories:')
         
@@ -499,8 +504,6 @@ class MyVirta(Virta):
         self.set_technologies()
         
         print('SEND ON HOLIDAY')
-        experimental_units = [unit_id for unit_id, unit in self.units.items() 
-                              if 365385 in self.indicators.get(unit_id, {})]
         nonexperimental_units = {unit_id: unit for unit_id, unit in self.units.items()
                                  if unit['name'][0] == '=' 
                                  and unit_id not in experimental_units
@@ -667,4 +670,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.elections_vote()
+    v.manage_research()
