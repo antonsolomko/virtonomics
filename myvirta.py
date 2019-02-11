@@ -454,8 +454,9 @@ class MyVirta(Virta):
         eq_key = lambda i: (labs[i]['equipment_count'],
                             labs[i]['equipment_quality'])
         for i in sorted(free_labs0, key=eq_key):
-            print(i, labs[i]['equipment_count'],
-                  '%.2f' % labs[i]['equipment_quality'])
+            if labs[i]['equipment_count'] > 0:
+                print(i, labs[i]['equipment_count'],
+                      '%.2f' % labs[i]['equipment_quality'])
         
         for level, unittypes in sorted(new_research.items()):
             if level <= 13: num = 5  # 100
