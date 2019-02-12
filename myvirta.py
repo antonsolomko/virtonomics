@@ -58,7 +58,7 @@ class MyVirta(Virta):
     
     def autorepair_equipment(self):
         suppliers = {
-            5600270: 'office',
+            8415404: 'office',
             6715974: ('workshop', 'mill'),
             3329984: ('farm', 'orchard'),
             8393314: 'educational'
@@ -667,8 +667,26 @@ class MyVirta(Virta):
         for unit_id, unit in units.items():
             print(unit['id'], unit['name'])
             self.manage_supply_orders(unit_id)
+    
+    
+    def read_messages(self):
+        ukr_cities = [city['city_name'] for city in self.cities(country_name='Украина').values()]
+        messages = [message_id for message_id, title in self.messages.items()
+                    if title == 'Поставка продукта прекращена'
+                    or title == 'Увеличена цена на продукт'
+                    or title == 'Поставщик ограничил объём поставок'
+                    or title == 'Товар не отгружен из-за низкого качества'
+                    or title == 'Товар не получен из-за низкого качества'
+                    #or 'Внедрение технологии на предприятие' in title
+                    or 'выборы губернатора' in title and 'Украина' not in title
+                    or 'выбран' in title
+                    or 'ставки налога на прибыль' in title
+                    or 'повышение энерготарифов' in title
+                    or 'мэра' in title and not any(name in title for name in ukr_cities)
+                    ]
+        self.mark_messages_as(messages)
             
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.manage_research()
+    #v.manage_research()

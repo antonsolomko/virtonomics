@@ -1530,6 +1530,25 @@ class Virta:
         return self.session.post(url)
     
     
+    def sale_unit(self, unit_id, price=None, factor=0.7):
+        if not price:
+            price = factor * self.unit_summary(unit_id, refresh=True)['market_price']
+            print(unit_id, price)
+        url = self.domain_ext + 'unit/market/sale/%s' % unit_id
+        data = {
+            'price': price,
+            'sale': 1
+            }
+        return self.session.post(url, data=data)
+    
+    
+    def cancel_sale_unit(self, unit_id):
+        """Отменить продажу предприятия"""
+        
+        url = self.domain_ext + 'unit/market/cancel_sale/%s' % unit_id
+        return self.session.get(url)
+    
+    
     def close_unit(self, unit_id):
         """Close unit.
         
@@ -2104,8 +2123,31 @@ class Virta:
         url = self.domain_ext + 'unit/view/%s' % unit_id
         data = {'picnic_btn': 1}
         return self.session.post(url, data=data)
+    
+    
+    @property
+    def messages(self):
+        url = self.domain_ext + 'common/util/setpaging/usermain/messageIncomingList/400'
+        self.session.get(url)
+        url = self.domain_ext + 'user/privat/persondata/message/system'
+        page = self.session.tree(url)
+        xp = '//tr[@id="newmesg"]'
+        result = {}
+        for row in page.xpath(xp):
+            message_id = int(row.xpath('./td/input/@value')[0])
+            title = str(row.xpath('./td[last()]/a/text()')[0])
+            result[message_id] = title
+        return result
+    
+    
+    def mark_messages_as(self, messages, read='Read'):
+        url = self.domain_ext + 'user/privat/persondata/message/system'
+        data = {
+            'markas': 'Read' if read else 'Unread',
+            'message[]': list(messages)
+            }
+        self.session.post(url, data=data)
         
 
 if __name__ == '__main__':
     v = Virta('olga')
-    e = v.elections
