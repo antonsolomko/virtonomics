@@ -341,8 +341,7 @@ class MyVirta(Virta):
     
     def manage_research(self):
         print('\nRESEARCH')
-        labs = {lab_id: self.unit_summary(lab_id) 
-                for lab_id in self.units(unit_class_kind='lab')}
+        labs = {lab_id: self.unit_summary(lab_id) for lab_id in self.units(unit_class_kind='lab')}
         free_labs = []
         current_research = {}
         experimental_units = [unit_id for unit_id, unit in self.units.items() 
