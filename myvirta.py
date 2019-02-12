@@ -463,7 +463,7 @@ class MyVirta(Virta):
             if level <= 13: num = 5  # 100
             elif level <= 19: num = 4  # 300
             elif level <= 25: num = 3  # 700
-            elif level <= 27: num = 2-1  # 850
+            elif level <= 27: num = 2  # 850
             else: num = 1  # 1000
             for unittype_id in unittypes:
                 # Choose free laboratory satisfying minimal requirements
@@ -690,4 +690,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.manage_research()
+    v.manage_research()
