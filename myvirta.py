@@ -61,8 +61,11 @@ class MyVirta(Virta):
             8415404: 'office',
             6715974: ('workshop', 'mill'),
             3329984: ('farm', 'orchard'),
-            8393314: 'educational'
+            8393314: 'educational',
+            4974307: 'lab',
+            8197411: 'restaurant',
             }
+        '''
         # Find supplier for restaurants
         offers = {i: o for i, o in self.offers(373198).items()
                   if o['price'] <= 2000000 and o['quality'] > 60 and o['free_for_buy'] > 300}
@@ -76,7 +79,7 @@ class MyVirta(Virta):
         if offers:
             offer_id = min(offers, key=lambda i: offers[i]['price']/offers[i]['quality'])
             suppliers[offer_id] = 'lab'
-        
+        '''
         for offer_id, unit_class in suppliers.items():
             units = [u['id'] for u in self.units(unit_class_kind=unit_class).values()]
             self.repair_equipment_all(offer_id, units)
@@ -375,13 +378,12 @@ class MyVirta(Virta):
                         and lab['project']['project_unit_loading'] < 100):
                     print(lab_id, self.unittypes[unittype_id]['name'])
                     print(' ! модификатор скорости испытаний < 100%')
-        #return current_research
         
         for unittype_id, levels in current_research.items():
             for level, lab_stages in levels.items():
                 if any(stage > 2 for stage in lab_stages.values()):
-                    # select single laboratory to carry on research and
-                    # filter out redundant labs
+                    # select single laboratory to carry on research and filter 
+                    # out redundant labs
                     key = lambda lab_id: (
                              lab_stages[lab_id] <= 2,
                              labs[lab_id]['project']['current_step_time_left'],
