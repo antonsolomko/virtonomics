@@ -1361,7 +1361,8 @@ class Virta:
             A_ub += [[0] + [o['price'] - max_price for o in offers]]
             b_ub += [0]
         
-        simplex = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
+        simplex = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds,
+                          options={'tol':10**-9})
         
         if not simplex.success:
             return simplex

@@ -221,7 +221,7 @@ class MyVirta(Virta):
                      and c['president']['president_name']==self.user]
         for country in countries:
             print(country['country_name'], self.days_to_refresh)
-            if self.days_to_refresh <= 26:
+            if self.days_to_refresh < 25:
                 self.country_money_project(country['id'], 'education')
                 self.country_money_project(country['id'], 'construction')
             self.country_money_projects(
@@ -691,3 +691,4 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     v.manage_research()
+    #v.read_messages()
