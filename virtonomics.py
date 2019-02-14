@@ -1045,6 +1045,25 @@ class Virta:
         return self.session.post(url, data=data)
     
     
+    def set_shop_sale_prices(self, shop_id, offers):
+        """Set prices at a shop trading hall.
+        
+        Arguments:
+            shop_id (int): Shop id.
+            offers (dict): {<offer_ids>: <price>}. Offer ids look like 
+                '{58728937,58982206}'.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
+        data = {'action': 'setprice'}
+        for offer_ids, price in offers.items():
+            data['productData[price][%s]'%offer_ids] = price
+        return self.session.post(url, data=data)
+    
+    
     def set_employees(self, unit_id, quantity=0, salary=0, salary_max=0,
                       target_level=0, trigger=0):
         """Set employees characteristics for a given unit.

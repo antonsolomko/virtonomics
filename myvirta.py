@@ -516,26 +516,6 @@ class MyVirta(Virta):
             
         return current_research
     
-    
-    ### UNDER DEVELOPMENT ###
-    
-    def manage_shop(self, shop_id):
-        """"""
-        
-        supply_contracts = self.supply_contracts(shop_id)
-        categories = set(c['shop_goods_category_id'] for c in supply_contracts.values())
-        products = self.goods(category_id=categories)
-        for product_id, product in products.items():
-            print(product['name'], end=' ')
-            product_contracts = supply_contracts(product_id=product_id)
-            offers = self.offers(product_id)(brandname_id=None)
-            print(len(offers))
-        
-    
-    def manage_shops(self):
-        for shop_id in self.units(unit_class_kind='shop'):
-            self.manage_shop(shop_id)
-    
 
     def manage_sale_offers(self, unit_id, delta=0, markup=0.1, target_ratio=10):
         """Manage sale offers.
@@ -686,9 +666,97 @@ class MyVirta(Virta):
                     or 'мэра' in title and not any(name in title for name in ukr_cities)
                     ]
         self.mark_messages_as(messages)
+    
+    
+    ### UNDER DEVELOPMENT ###
+    
+    def manage_shop(self, shop_id, days=3):
+        def compute_price(position):
+            def exp(percent, p0=1.5, p1=3, p2=6):
+                #exp(0)=p0, #exp(0.5)=p1, #exp(1)=p2
+                a = (p1-p0)**2 / (p0+p2-2*p1)
+                b = ((p2-p1)/(p1-p0))**2
+                return a*( b**percent - 1 ) + p0
+            if not position['stock']:
+                return None
+            target_price = position['cost'] * exp(position['market_share'])
+            avg_price = position['avg_price'] * position['quality'] / position['avg_quality']
+            target_price = max(avg_price, target_price)
+            new_price = (position['price'] + target_price) / 2
+            max_increase = 1.05 + position['market_share'] / 5
+            new_price = min(new_price, max_increase*position['price'])
+            new_price = max(new_price, 0.9*position['price'])
+            new_price = max(new_price, 1.01 * position['cost'])
+            return new_price
+            
+        def compute_order(position=None, days=days):
+            result = {
+                'amount': 1, 
+                'max_price': 100000,
+                'min_quality': 0,
+                'min_brand': 0
+                }
+            if position:
+                if not position['stock']:
+                    result['amount'] = max(1, position['sold'])
+                    result['max_price'] = position['avg_price']
+                else:
+                    if position['stock'] == position['purchase']:
+                        forecast = max(position['sold'], position['stock'])
+                    else:
+                        forecast = position['sold']
+                    fund = max(0, position['stock'] - forecast)
+                    if not position['sold']:
+                        days = 1
+                    result['amount'] = max(0, forecast * days - fund)
+                    if position['market_share']:
+                        market_size = position['sold'] / position['market_share']
+                        result['amount'] = min(result['amount'], market_size)
+                    result['max_price'] = position['price'] / 1.2
+                    result['min_quality'] = position['quality'] / 1.2
+                    result['min_brand'] = position['brand'] / 2
+            result['amount'] = int(result['amount'])
+            return result
+            
+        trading_hall = self.trading_hall(shop_id)
+        supply_products = self.supply_products(shop_id)
+        supply_contracts = self.supply_contracts(shop_id)
+        
+        categories = set(c['shop_goods_category_id'] for c in supply_contracts.values())  # departments
+        products = self.goods(category_id=categories)
+        
+        sale_offers = {}  # New trading hall prices
+        to_order = {}
+        
+        # New prices
+        for product_id, position in trading_hall.items():
+            new_price = compute_price(position)
+            if new_price:
+                sale_offers[position['ids']] = (position['price'], new_price)
+            to_order[product_id] = compute_order(position)
+        
+        # Orders
+        orders = {}
+        for product_id, product in supply_products.items():
+            if product_id not in to_order:
+                to_order[product_id] = compute_order()
+            to_order[product['product_name']] = to_order[product_id]  # debug
+            product_contracts = supply_contracts(product_id=product_id)
+            
+        # New contracts
+            
+        #self.set_shop_sale_prices(shop_id, sale_offers)
+        
+        return trading_hall, supply_products, supply_contracts, sale_offers, orders, to_order
+        
+    
+    def manage_shops(self):
+        #global_offers = {product_id: self.offers(product_id)(brandname_id=None) for product_id in self.goods}
+        for shop_id in self.units(unit_class_kind='shop'):
+            self.manage_shop(shop_id)
             
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.manage_research()
-    #v.read_messages()
+    #v.manage_research()
+    trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
