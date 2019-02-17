@@ -953,7 +953,7 @@ class Virta:
                         present).
                     'max_price' (float): Price constraint (default 0 for 
                         no constraint, if not present). If 0, relative
-                        constraint is used instead.
+                        constraint (max_increase) is used instead.
                     'max_increase' (int, 0..5): Relative price change 
                         constraint, may take values: 0 (no constraint), 
                         1 (5%), 2 (10%), 3 (20%), 4 (50%), 5 (100%).

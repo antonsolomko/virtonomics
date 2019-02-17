@@ -246,6 +246,8 @@ class MyVirta(Virta):
                 break
         else:
             candidates = page.xpath('//input[@name="member"]/@value')
+            if not candidates:
+                candidates = page.xpath('//input[@name="pr_member"]/@value')
             if len(set(candidates)) == 2:
                 print('  vote for the only candidate')
                 supported_candidate = candidates[0]
@@ -262,7 +264,7 @@ class MyVirta(Virta):
         """Vote in all elections"""
         
         print('\nELECTIONS')
-        for election_id, election in self.elections(days_to_election=(0,1,2)).items():
+        for election_id, election in self.elections(days_to_election=(0,1,2,3)).items():
             print(election_id, election['location_name'])
             self.vote(election_id)
     
@@ -679,16 +681,22 @@ class MyVirta(Virta):
                 return a*( b**percent - 1 ) + p0
             if not position['stock']:
                 return None
-            target_price = position['cost'] * exp(position['market_share'])
-            avg_price = position['avg_price'] * position['quality'] / position['avg_quality']
-            target_price = max(avg_price, target_price)
-            new_price = (position['price'] + target_price) / 2
-            max_increase = 1.05 + position['market_share'] / 5
-            new_price = min(new_price, max_increase*position['price'])
-            new_price = max(new_price, 0.9*position['price'])
-            new_price = max(new_price, 1.01 * position['cost'])
-            return new_price
-            
+            if not position['sold'] and position['stock'] > position['purchase']:
+                target_price = position['cost']
+            else:
+                target_price = position['cost'] * exp(position['market_share'])
+                avg_price = position['avg_price'] * position['quality'] / position['avg_quality']
+                target_price = max(avg_price, target_price)
+            if position['price']:
+                new_price = (position['price'] + target_price) / 2
+                max_increase = 1.05 + position['market_share'] / 5
+                new_price = min(new_price, max_increase * position['price'])
+                new_price = max(new_price, 0.9 * position['price'])
+            else:
+                new_price = target_price
+            new_price = max(new_price, 1.05 * position['cost'])
+            return round(new_price, 2)
+        
         def compute_order(position=None, days=days):
             result = {
                 'amount': 1, 
@@ -717,8 +725,22 @@ class MyVirta(Virta):
                     result['min_brand'] = position['brand'] / 2
             result['amount'] = int(result['amount'])
             return result
-            
-        trading_hall = self.trading_hall(shop_id)
+        
+        def distribute_orders(to_order, contracts):
+            result = {}
+            for contract in contracts.values():
+                order = {}
+                order['quantity'] = 0
+                if contract['supplier_company_id'] == self.company['id']:
+                    order['max_price'] = 0
+                    order['max_increase'] = 0
+                else:
+                    order['max_price'] = contract['price_constraint_max']
+                    order['max_increase'] = contract['price_constraint']
+                order['min_quality'] = contract['quality_constraint_min']
+                result[contract['offer_id']] = order
+            return result
+        
         supply_products = self.supply_products(shop_id)
         supply_contracts = self.supply_contracts(shop_id)
         
@@ -729,7 +751,7 @@ class MyVirta(Virta):
         to_order = {}
         
         # New prices
-        for product_id, position in trading_hall.items():
+        for product_id, position in self.trading_hall(shop_id).items():
             new_price = compute_price(position)
             if new_price:
                 sale_offers[position['ids']] = (position['price'], new_price)
@@ -740,23 +762,41 @@ class MyVirta(Virta):
         for product_id, product in supply_products.items():
             if product_id not in to_order:
                 to_order[product_id] = compute_order()
-            to_order[product['product_name']] = to_order[product_id]  # debug
+            to_order[product_id]['product_name'] = product['product_name']  # debug
             product_contracts = supply_contracts(product_id=product_id)
+            for offer_id, order in distribute_orders(to_order[product_id], product_contracts).items():
+                orders[offer_id] = order
             
         # New contracts
             
         #self.set_shop_sale_prices(shop_id, sale_offers)
+        #self.set_supply_contracts(shop_id, orders)
         
         return trading_hall, supply_products, supply_contracts, sale_offers, orders, to_order
         
     
     def manage_shops(self):
-        #global_offers = {product_id: self.offers(product_id)(brandname_id=None) for product_id in self.goods}
-        for shop_id in self.units(unit_class_kind='shop'):
+        black_list = []
+        global_offers = {}
+        for product_id in self.goods:
+            product_offers = self.offers(product_id)(brandname_id=None, max_qty=None)
+            global_offers[product_id] = {}
+            count = 0
+            sort_key = lambda o: product_offers[o]['price'] / product_offers[o]['quality']**2
+            for i, offer_id in enumerate(sorted(product_offers, key=sort_key)):
+                if count >= 5:
+                    break
+                elif product_offers[offer_id]['company_name'] not in black_list:
+                    global_offers[product_id][offer_id] = product_offers[offer_id]
+                    count += 1
+        return global_offers
+        for shop_id, shop in self.units(unit_class_kind='shop').items():
+            print(shop['name'])
             self.manage_shop(shop_id)
             
     
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.manage_research()
-    trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
+    #global_offers = v.manage_shops()
+    #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
