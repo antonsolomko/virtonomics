@@ -4,6 +4,16 @@
 
 from virtonomics import *
 import math
+import random
+
+
+def delay(func):
+    def wrapper(*args, **kwargs):
+        secs = random.uniform(0, 0.2)
+        print('Delay', '%.2fs'%secs)
+        time.sleep(secs)
+        return func(*args, **kwargs)
+    return wrapper
 
 
 #@for_all_methods(logger)
@@ -24,6 +34,8 @@ class MyVirta(Virta):
     
     def __init__(self, server='olga', **kwargs):
         super().__init__(server, **kwargs)
+        self.session.get = delay(self.session.get)
+        self.session.post = delay(self.session.post)
     
     
     def set_innovation(self, unit_id, innovation_name, **kwargs):
@@ -797,6 +809,7 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    #v.read_messages()
     #v.manage_research()
     #global_offers = v.manage_shops()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
