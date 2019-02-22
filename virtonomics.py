@@ -1550,11 +1550,16 @@ class Virta:
         return self.session.post(url)
     
     
-    def sale_unit(self, unit_id, price=None, factor=0.7):
-        if not price:
-            price = factor * self.unit_summary(unit_id, refresh=True)['market_price']
-            print(unit_id, price)
+    def sale_unit(self, unit_id, price=None, factor=1):
         url = self.domain_ext + 'unit/market/sale/%s' % unit_id
+        if not price:
+            market_price = self.unit_summary(unit_id, refresh=True)['market_price']
+            if not market_price:
+                page = self.session.tree(url)
+                xp = '//input[@name="price"]/@value'
+                market_price = float(page.xpath(xp)[0])
+            price = factor * market_price
+        print('Sale', unit_id, 'for', price)
         data = {
             'price': price,
             'sale': 1
@@ -2171,3 +2176,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    v.sale_unit(6678840)
