@@ -9,8 +9,8 @@ import random
 
 def delay(func):
     def wrapper(*args, **kwargs):
-        secs = random.uniform(0, 0.2)
-        print('Delay', '%.2fs'%secs)
+        secs = random.uniform(0.1, 0.2)
+        print('.', end='')
         time.sleep(secs)
         return func(*args, **kwargs)
     return wrapper
@@ -61,8 +61,13 @@ class MyVirta(Virta):
                       8: 'Сахар',
                       9: 'Кукуруза',
                       10: 'Кукуруза',
-                      11: 'Выращивание помидоров'
-                     }
+                      11: 'Выращивание помидоров',
+                     },
+            7549945: {8: 'Апельсины',
+                      9: 'Апельсины',
+                      10: 'Оливки',
+                      11: 'Оливки',
+                     },
             }
         for unit_id, seasons in unit_seasons.items():
             self.farm_season(unit_id, seasons)
@@ -295,6 +300,7 @@ class MyVirta(Virta):
         products = {}
         contracts = self.sale_contracts(unit_id)
         sort_key = lambda c: (c['consumer_company_id'] != self.company['id'],
+                              c['country_name'] != 'Украина',
                               c['party_quantity'])
         for contract in sorted(contracts, key=sort_key):
             p = contract['product_id']
@@ -319,10 +325,13 @@ class MyVirta(Virta):
             self.resize_unit(unit_id, size=target_size)
     
     
-    def sypply_own_shops(self):
-        offers = set(c['offer_id'] for c in self.sale_contracts(7355677))
+    def sypply_own_shop(self, shop_id, units=None):
+        if not units:
+            units = [7405776, 6703013, 7355677, 7429787, 7495664, 7515896, 6991290]
+        offers = set(c['offer_id'] for u in units for c in self.sale_contracts(u))
+        print(offers)
         for offer_id in offers:
-            self.create_supply_contract(7489136, offer_id, max_increase=0)
+            self.create_supply_contract(shop_id, offer_id, max_increase=0)
     
     
     def set_technologies(self):
@@ -474,11 +483,11 @@ class MyVirta(Virta):
                       '%.2f' % labs[i]['equipment_quality'])
         
         for level, unittypes in sorted(new_research.items()):
-            if level <= 13: num = 5  # 100
-            elif level <= 19: num = 4  # 300
-            elif level <= 25: num = 3  # 700
-            elif level <= 27: num = 2  # 850
-            else: num = 1  # 1000
+            if level <= 13: num = 6  # 100
+            elif level <= 19: num = 5  # 300
+            elif level <= 25: num = 4  # 700
+            elif level <= 27: num = 3  # 850
+            else: num = 2  # 1000
             for unittype_id in unittypes:
                 # Choose free laboratory satisfying minimal requirements
                 print('+', self.unittypes[unittype_id]['name'], level, 

@@ -1559,6 +1559,7 @@ class Virta:
                 xp = '//input[@name="price"]/@value'
                 market_price = float(page.xpath(xp)[0])
             price = factor * market_price
+        price = int(price)
         print('Sale', unit_id, 'for', price)
         data = {
             'price': price,
@@ -2176,4 +2177,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    v.sale_unit(6678840)
