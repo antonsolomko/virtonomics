@@ -2181,7 +2181,7 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    def set_advertisement(self, unit_id, cost=None, *, factor=50, max_cost=None):
+    def set_advertisement(self, unit_id, *, cost=None, ratio=50, max_cost=None):
         """Launch an advertising campaign for a given unit."""
         
         if not cost:
@@ -2189,9 +2189,10 @@ class Virta:
             city = self.cities.select(city_id=unit['city_id'])
             city_level = city['level']
             city_population = city['population']
-            cost = factor * 0.24 * 1.2**(city_level-1) * city_population
+            cost = ratio * 0.24 * 1.2**(city_level-1) * city_population
         if max_cost:
             cost = min(cost, max_cost)
+        print(ratio, int(cost/1000000))
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {
             'advertData[type][]': 2264,
@@ -2211,4 +2212,9 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    #v.set_advertisement(7561498, factor=100)
+    #ratios = {}
+    fames = {}
+    for n, u in enumerate(v.units(name='*****')):
+        #ratios[u] = n//4 + 1
+        #v.set_advertisement(u, ratio=n//4 + 1)
+        fames[u] = v.unit_summary(u)['fame']
