@@ -2179,7 +2179,36 @@ class Virta:
         url = self.domain_ext + 'unit/view/%s' % shop_id
         data = {'auto_Price': 'Распродажные цены'}
         return self.session.post(url, data=data)
+    
+    
+    def set_advertisement(self, unit_id, cost=None, *, factor=50, max_cost=None):
+        """Launch an advertising campaign for a given unit."""
+        
+        if not cost:
+            unit = self.units.select(id=unit_id)
+            city = self.cities.select(city_id=unit['city_id'])
+            city_level = city['level']
+            city_population = city['population']
+            cost = factor * 0.24 * 1.2**(city_level-1) * city_population
+        if max_cost:
+            cost = min(cost, max_cost)
+        url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
+        data = {
+            'advertData[type][]': 2264,
+            'advertData[totalCost]': cost,
+            'accept': 1
+            }
+        return self.session.post(url, data=data)
+    
+    
+    def stop_advertisement(self, unit_id):
+        """Stop advertising campaign for a given unit."""
+        
+        url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
+        data = {'cancel': 1}
+        return self.session.post(url, data=data)
         
 
 if __name__ == '__main__':
     v = Virta('olga')
+    #v.set_advertisement(7561498, factor=100)
