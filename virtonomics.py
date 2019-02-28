@@ -2173,6 +2173,12 @@ class Virta:
             'message[]': list(messages)
             }
         self.session.post(url, data=data)
+    
+    
+    def set_shop_sale_prices(self, shop_id):
+        url = self.domain_ext + 'unit/view/%s' % shop_id
+        data = {'auto_Price': 'Распродажные цены'}
+        return self.session.post(url, data=data)
         
 
 if __name__ == '__main__':
