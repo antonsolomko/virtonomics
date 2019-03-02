@@ -390,7 +390,7 @@ class MyVirta(Virta):
                 current_research[unittype_id][level][lab_id] = stage
                 
                 time_left = lab['project']['current_step_time_left']
-                if stage == 1 and time_left < 2:
+                if stage == 1 and time_left < 3:
                     print(lab_id, self.unittypes[unittype_id]['name'], '1..2')
                     self.set_innovation(lab_id, 'lab2')
                 elif stage == 3 and time_left < 2:

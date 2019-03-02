@@ -15,6 +15,7 @@ import json
 import logging
 from functools import wraps
 from scipy.optimize import linprog
+import math
 
     
 TODAY = datetime.datetime.today().date()  # real date, no timezone correction
@@ -107,7 +108,7 @@ class Dict(dict):
             if not (isinstance(fv, list) or isinstance(fv, tuple) or isinstance(fv, set)):
                 filters[fk] = [fv]
         return Dict({k: v for k, v in self.items()
-                if all(v.get(fk) in fv for fk, fv in filters.items())})
+                     if all(v.get(fk) in fv for fk, fv in filters.items())})
     
     def select(self, **filters):
         """Return the unique dictionary that contains passed key-value pairs.
@@ -2166,10 +2167,22 @@ class Virta:
         return result
     
     
-    def mark_messages_as(self, messages, read='Read'):
+    def mark_messages_as(self, messages, mark_as='Read'):
+        """Mark messages as read (by default) or unread.
+        
+        Arguments:
+            messages (iterable): List of messages ids.
+            mark_as (str): 'Read' or 'Unread'.
+        
+        Returns:
+            POST request responce.
+        """
+        
         url = self.domain_ext + 'user/privat/persondata/message/system'
+        if mark_as not in ('Read', 'Unread'):
+            return
         data = {
-            'markas': 'Read' if read else 'Unread',
+            'markas': mark_as,
             'message[]': list(messages)
             }
         self.session.post(url, data=data)
@@ -2208,13 +2221,41 @@ class Virta:
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {'cancel': 1}
         return self.session.post(url, data=data)
-        
+    
+    
+    def distribute_shop_employees(self, units, total_number=None, competence=None):
+        base = 10
+        load = 1.2
+        if not total_number:
+            if competence:
+                total_number = load * base * competence * (competence + 3)
+            else:
+                return
+        units = {unit_id: self.unit_summary(unit_id) for unit_id in units}
+        employee_required = {unit_id: unit['employee_required']
+                             for unit_id, unit in units.items()
+                             if not unit.get('on_holiday', True)}
+        total_required = sum(employee_required.values())
+        if not total_required:
+            return
+        factor = total_number / total_required
+        for unit_id, required_number in employee_required.items():
+            employee_number = int(factor * required_number)
+            employee_level = 1 + math.log(
+                base * competence**2 * min(1.2, 1/load)**2 / employee_number, 1.4)
+            employee_level = int(100 * employee_level) / 100
+            print(unit_id, employee_number, employee_level)
+            self.set_employees(unit_id, quantity=employee_number, 
+                               target_level=employee_level, trigger=1)
+    
 
 if __name__ == '__main__':
     v = Virta('olga')
-    #ratios = {}
-    fames = {}
-    for n, u in enumerate(v.units(name='*****')):
-        #ratios[u] = n//4 + 1
-        #v.set_advertisement(u, ratio=n//4 + 1)
-        fames[u] = v.unit_summary(u)['fame']
+    #fames = {}
+    #pos = {}
+    pop = {}
+    for u, un in v.units(name='*****').items():
+        #fames[u] = v.unit_summary(u)['fame']
+        #unit = v.unit_summary(u)
+        #pos[u] = unit['customers_count']
+        pop[u] = v.cities.select(city_id=un['city_id'])['population']
