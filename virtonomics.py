@@ -2194,43 +2194,92 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    def set_advertisement(self, unit_id, *, cost=None, ratio=None, target_fame=None,
-                          target_limit_fame=None, max_cost=None):
-        """Launch an advertising campaign for a given unit."""
+    def set_advertisement(self, unit_id, *, cost=None, ratio=None, 
+                          target_fame=None, target_limit_fame=None, 
+                          max_cost=None, competence=None, innovation=False):
+        """Launch an advertising campaign for a given unit.
+        Currently supports TV commercial only (as the most effective one) 
+        for shops only.
         
-        max_fame = 8
+        Notes:
+            New fame is defined by two factors: current fame and the ratio of 
+            the number of contacts to the city population.
+            
+            In the game interface the fame (известность) is displayed 
+            multiplied by 100 compared to the one used here and by game API.
+            To secure users from unintentionally pasing high target fames,
+            any fame greater than 7.8 passed to the method is divided by 100.
+            
+            Effectiveness is not currently controlled, and should be controlled
+            manually by passing competence or max_cost. Otherwise, the cost may
+            be very high and the compaign not 100% effective.
+        
+        Arguments:
+            unit_id (int): Unit id.
+            cost (float): Advertising campaign price. This is the most
+                straightforward way to launch an advertising campaign.
+                If not passed, ratio, target_fame or target_limit_fame are used
+                instead to define the compaign cost.
+            ratio (float): ratio of the number of contacts to the city 
+                population. Can only be between 0 and 1600. The corresponding 
+                cost is computed authomatically. If not passed, target_fame or 
+                target_limit_fame are used.
+            target_fame (float): Target fame to achieve the next day. The
+                corresponding compaign cost is computed given the current fame.
+                If the target fame cannot be achieved in one day due to 
+                effectiveness or ratio restrictions, the cost will be reduced
+                to the maximum 100% effective one. If not passed, 
+                target_limit_fame is used to determine the cost.
+            target_limit_fame (float): Target limit fame to achieve. If the 
+                price of an advertising campaign is fixed, the fame converges
+                to some value. The cost is computed so that the limit will be 
+                eventually equal to target_limit_fame.
+            max_cost (float): Maximum compaign cost bound.
+            competence (int): Top manager's competence in marketing. Used to 
+                determine max_cost if max_cost is not passed.
+            innovation (bool): Партнёрский договор с рекламным агентством flag.
+                Defaults to False.
+        
+        Returns:
+            POST request responce.
+        """
+        
+        # exp and log are base e=2.718281828459045...
+        max_fame = 7.8  # no higher fame can be ever achieved
+        growth_rate = 9 if innovation else 6
         if not cost:
-            unit = self.units.select(id=unit_id)
             if not ratio:
-                if target_limit_fame:
+                if target_fame:
+                    if target_fame > max_fame:
+                        target_fame /= 100
+                    cf = v.unit_summary(unit_id)['fame']  # current fame
+                    tf = target_fame
+                    ratio = (math.exp(tf) - math.exp(cf - cf**2 / 200)) / growth_rate
+                elif target_limit_fame:
                     if target_limit_fame > max_fame:
                         target_limit_fame /= 100
                     f = target_limit_fame
-                    ratio = (math.exp(f) - math.exp(f - f**2 / 200)) / 6
-                elif target_fame:
-                    if target_fame > max_fame:
-                        target_fame /= 100
-                    cf = current_fame = v.unit_summary(unit_id)['fame']
-                    tf = target_fame
-                    ratio = (math.exp(tf) - math.exp(cf - cf**2 / 200)) / 6
+                    ratio = (math.exp(f) - math.exp(f - f**2 / 200)) / growth_rate
                 else:
-                    return
+                    ratio = 0
                 if ratio > 30:
                     ratio = 30 + (ratio - 30)**2
-                    if ratio > 1600:
-                        ratio = 1600
-                elif ratio < 0:
-                    ratio = 0
-                print(ratio)
+            if ratio > 1600:
+                ratio = 1600
+            elif ratio < 0:
+                ratio = 0
+            unit = self.units.select(id=unit_id)
+            if not unit:
+                return
             city = self.cities.select(city_id=unit['city_id'])
-            city_level = city['level']
-            city_population = city['population']
-            cost = ratio * 0.24 * 1.2**(city_level-1) * city_population
-        if max_cost:
-            cost = min(cost, max_cost)
+            cost = ratio * 0.24 * 1.2**(city['level'] - 1) * city['population']
+        if competence and not max_cost:
+            max_cost = 200000 * competence**1.4
+        if max_cost and cost > max_cost:
+            cost = max_cost
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {
-            'advertData[type][]': 2264,
+            'advertData[type][]': 2264,  # TV
             'advertData[totalCost]': cost,
             'accept': 1
             }
