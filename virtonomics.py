@@ -2194,18 +2194,40 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    def set_advertisement(self, unit_id, *, cost=None, ratio=50, max_cost=None):
+    def set_advertisement(self, unit_id, *, cost=None, ratio=None, target_fame=None,
+                          target_limit_fame=None, max_cost=None):
         """Launch an advertising campaign for a given unit."""
         
+        max_fame = 8
         if not cost:
             unit = self.units.select(id=unit_id)
+            if not ratio:
+                if target_limit_fame:
+                    if target_limit_fame > max_fame:
+                        target_limit_fame /= 100
+                    f = target_limit_fame
+                    ratio = (math.exp(f) - math.exp(f - f**2 / 200)) / 6
+                elif target_fame:
+                    if target_fame > max_fame:
+                        target_fame /= 100
+                    cf = current_fame = v.unit_summary(unit_id)['fame']
+                    tf = target_fame
+                    ratio = (math.exp(tf) - math.exp(cf - cf**2 / 200)) / 6
+                else:
+                    return
+                if ratio > 30:
+                    ratio = 30 + (ratio - 30)**2
+                    if ratio > 1600:
+                        ratio = 1600
+                elif ratio < 0:
+                    ratio = 0
+                print(ratio)
             city = self.cities.select(city_id=unit['city_id'])
             city_level = city['level']
             city_population = city['population']
             cost = ratio * 0.24 * 1.2**(city_level-1) * city_population
         if max_cost:
             cost = min(cost, max_cost)
-        print(ratio, int(cost/1000000))
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {
             'advertData[type][]': 2264,
@@ -2251,11 +2273,13 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    #fames = {}
-    #pos = {}
-    pop = {}
+    fames = {}
+    pos = {}
+    #pop = {}
     for u, un in v.units(name='*****').items():
-        #fames[u] = v.unit_summary(u)['fame']
-        #unit = v.unit_summary(u)
-        #pos[u] = unit['customers_count']
-        pop[u] = v.cities.select(city_id=un['city_id'])['population']
+        v.stop_advertisement(u)
+        fames[u] = v.unit_summary(u)['fame']
+        unit = v.unit_summary(u)
+        pos[u] = unit['customers_count']
+        #pop[u] = v.cities.select(city_id=un['city_id'])['population']
+    #v.set_advertisement(7561511, target_fame=6, max_cost=275000000)
