@@ -2196,10 +2196,10 @@ class Virta:
     
     def set_advertisement(self, unit_id, *, cost=None, ratio=None, 
                           target_fame=None, target_limit_fame=None, 
-                          max_cost=None, competence=None, innovation=False):
+                          max_cost=None, competence=None, innovation=False,
+                          platform=1):
         """Launch an advertising campaign for a given unit.
-        Currently supports TV commercial only (as the most effective one) 
-        for shops only.
+        Currently supports shops only.
         
         Notes:
             New fame is defined by two factors: current fame and the ratio of 
@@ -2239,6 +2239,14 @@ class Virta:
                 determine max_cost if max_cost is not passed.
             innovation (bool): Партнёрский договор с рекламным агентством flag.
                 Defaults to False.
+            platform (int, 1..5): Advertising platform:
+                1 - TV (the cheapest per contact),
+                2 - radio,
+                3 - outdoor advertising,
+                4 - printed media,
+                5 - the Internet.
+                Only used if cost is explicitely passed (defaults to 1), 
+                otherwise the cheapest options is choosen.
         
         Returns:
             POST request responce.
@@ -2266,20 +2274,30 @@ class Virta:
                     ratio = 30 + (ratio - 30)**2
             if ratio > 1600:
                 ratio = 1600
-            elif ratio < 0:
-                ratio = 0
-            unit = self.units.select(id=unit_id)
-            if not unit:
-                return
-            city = self.cities.select(city_id=unit['city_id'])
-            cost = ratio * 0.24 * 1.2**(city['level'] - 1) * city['population']
+                
+            if ratio <= 0:
+                return self.stop_advertisement(unit_id)
+            else:
+                unit = self.units.select(id=unit_id)
+                if not unit:
+                    return
+                city = self.cities.select(city_id=unit['city_id'])
+                estimator_url = '%s/%s/ajax/unit/virtasement/%s/fame' % (
+                                    self.domain, self.server, unit_id)
+                for platform in range(1,6):
+                    data = {'type[]': 2265 - platform}
+                    estimate = self.session.post(estimator_url, data=data).json(cls=Decoder)
+                    cost = ratio * estimate['contactCost'] * city['population']
+                    if cost >= estimate['minCost']:
+                        break
         if competence and not max_cost:
             max_cost = 200000 * competence**1.4
         if max_cost and cost > max_cost:
             cost = max_cost
+        print(unit_id, target_fame, platform, int(cost/10000)/100)
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {
-            'advertData[type][]': 2264,  # TV
+            'advertData[type][]': 2265 - platform,
             'advertData[totalCost]': cost,
             'accept': 1
             }
@@ -2322,13 +2340,15 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    fames = {}
-    pos = {}
+    #fames = {}
+    #pos = {}
     #pop = {}
-    for u, un in v.units(name='*****').items():
-        v.stop_advertisement(u)
-        fames[u] = v.unit_summary(u)['fame']
-        unit = v.unit_summary(u)
-        pos[u] = unit['customers_count']
+    for n, u in enumerate(v.units(name='*test')):
+        #fames[u] = v.unit_summary(u)['fame']
+        #unit = v.unit_summary(u)
+        #pos[u] = unit['customers_count']
         #pop[u] = v.cities.select(city_id=un['city_id'])['population']
-    #v.set_advertisement(7561511, target_fame=6, max_cost=275000000)
+        v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
+        
+        
+        
