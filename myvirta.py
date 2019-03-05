@@ -682,7 +682,7 @@ class MyVirta(Virta):
                     or title == 'Товар не отгружен из-за низкого качества'
                     or title == 'Товар не получен из-за низкого качества'
                     #or 'Внедрение технологии на предприятие' in title
-                    or 'выборы губернатора' in title and 'Украина' not in title
+                    or 'губернатора' in title and 'Украина' not in title
                     or 'выбран' in title
                     or 'ставки налога на прибыль' in title
                     or 'повышение энерготарифов' in title
@@ -818,7 +818,7 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.read_messages()
+    v.read_messages()
     #v.manage_research()
     #global_offers = v.manage_shops()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)

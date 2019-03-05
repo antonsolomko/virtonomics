@@ -2343,12 +2343,12 @@ if __name__ == '__main__':
     #fames = {}
     #pos = {}
     #pop = {}
-    for n, u in enumerate(v.units(name='*test')):
+    #for n, u in enumerate(v.units(name='*test')):
         #fames[u] = v.unit_summary(u)['fame']
         #unit = v.unit_summary(u)
         #pos[u] = unit['customers_count']
         #pop[u] = v.cities.select(city_id=un['city_id'])['population']
-        v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
+        #v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
         
         
         
