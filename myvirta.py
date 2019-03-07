@@ -693,7 +693,7 @@ class MyVirta(Virta):
     
     ### UNDER DEVELOPMENT ###
     
-    def manage_shop(self, shop_id, days=3):
+    def manage_shop0(self, shop_id, days=3):
         def compute_price(position):
             def exp(percent, p0=1.5, p1=3, p2=6):
                 #exp(0)=p0, #exp(0.5)=p1, #exp(1)=p2
@@ -796,7 +796,7 @@ class MyVirta(Virta):
         return trading_hall, supply_products, supply_contracts, sale_offers, orders, to_order
         
     
-    def manage_shops(self):
+    def manage_shops0(self):
         black_list = []
         global_offers = {}
         for product_id in self.goods:
@@ -814,11 +814,30 @@ class MyVirta(Virta):
         for shop_id, shop in self.units(unit_class_kind='shop').items():
             print(shop['name'])
             self.manage_shop(shop_id)
+    
+    
+    def manage_shops_advertisement(self):
+        a = 1.0284675
+        b = 0.37111992
+        c = 2.1117
+        target_customers = 800000
+        for unit_id in self.units(name='*****'):
+            unit = v.unit_summary(unit_id)
+            population = v.cities.select(city_id=unit['city_id'])['population']
+            target_fame = math.log(target_customers / (c * population**b)) / a
+            print(unit_id, target_fame)
+    
+    
+    def distribute_shop_employees(self):
+        units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
+                 if unit['name'] == '*****' or unit['name'][0] != '*']
+        super().distribute_shop_employees(units, competence=154)
             
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.read_messages()
+    #v.distribute_shop_employees()
+    #v.read_messages()
     #v.manage_research()
     #global_offers = v.manage_shops()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)

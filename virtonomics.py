@@ -2199,7 +2199,6 @@ class Virta:
                           max_cost=None, competence=None, innovation=False,
                           platform=1):
         """Launch an advertising campaign for a given unit.
-        Currently supports shops only.
         
         Notes:
             New fame is defined by two factors: current fame and the ratio of 
@@ -2294,7 +2293,7 @@ class Virta:
             max_cost = 200000 * competence**1.4
         if max_cost and cost > max_cost:
             cost = max_cost
-        print(unit_id, target_fame, platform, int(cost/10000)/100)
+        print(unit_id, target_fame, target_limit_fame, platform, int(cost/10000)/100)
         url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
         data = {
             'advertData[type][]': 2265 - platform,
@@ -2336,19 +2335,31 @@ class Virta:
             print(unit_id, employee_number, employee_level)
             self.set_employees(unit_id, quantity=employee_number, 
                                target_level=employee_level, trigger=1)
-    
+
 
 if __name__ == '__main__':
     v = Virta('olga')
-    #fames = {}
-    #pos = {}
-    #pop = {}
-    #for n, u in enumerate(v.units(name='*test')):
-        #fames[u] = v.unit_summary(u)['fame']
-        #unit = v.unit_summary(u)
-        #pos[u] = unit['customers_count']
-        #pop[u] = v.cities.select(city_id=un['city_id'])['population']
-        #v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
+    coef = {
+            'Фешенебельный район': 0.15,
+            'Центр города': 1.0,
+            'Спальный район': 0.75,
+            'Окраина': 0.6,
+            'Пригород': 0.4
+        }
+    '''for n, u in enumerate(v.units(name='*****')):
+        fame = v.unit_summary(u)['fame']
+        unit = v.unit_summary(u)
+        pos = unit['customers_count']
+        pop = v.cities.select(city_id=unit['city_id'])['population']
+        sz = unit['size']
+        d = coef[unit['district_name']]
+        print('%s,%d,%d,%s,%d' % (fame, pop, sz, d, pos))
+        #print('%s,%d' % (fame, pos))
+        #v.set_advertisement(u, target_limit_fame=6.5)
+        if True:
+            v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
+        else:
+            v.set_advertisement(u, target_limit_fame=n/10, competence=175, innovation=(n>=55))'''
         
         
         
