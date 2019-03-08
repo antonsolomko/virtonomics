@@ -2196,8 +2196,8 @@ class Virta:
     
     def set_advertisement(self, unit_id, *, cost=None, ratio=None, 
                           target_fame=None, target_limit_fame=None, 
-                          max_cost=None, competence=None, innovation=False,
-                          platform=1):
+                          target_customers=None, max_cost=None, 
+                          competence=None, innovation=False, platform=1):
         """Launch an advertising campaign for a given unit.
         
         Notes:
@@ -2233,6 +2233,8 @@ class Virta:
                 price of an advertising campaign is fixed, the fame converges
                 to some value. The cost is computed so that the limit will be 
                 eventually equal to target_limit_fame.
+            target_customers (int): Target customers number. target_fame will
+                be estimated accordingly.
             max_cost (float): Maximum compaign cost bound.
             competence (int): Top manager's competence in marketing. Used to 
                 determine max_cost if max_cost is not passed.
@@ -2260,13 +2262,19 @@ class Virta:
                     if target_fame > max_fame:
                         target_fame /= 100
                     cf = v.unit_summary(unit_id)['fame']  # current fame
-                    tf = target_fame
-                    ratio = (math.exp(tf) - math.exp(cf - cf**2 / 200)) / growth_rate
+                    ratio = (math.exp(target_fame) - math.exp(cf - cf**2 / 200)) / growth_rate
                 elif target_limit_fame:
                     if target_limit_fame > max_fame:
                         target_limit_fame /= 100
                     f = target_limit_fame
                     ratio = (math.exp(f) - math.exp(f - f**2 / 200)) / growth_rate
+                elif target_customers:
+                    unit = self.unit_summary(unit_id)
+                    if not unit['customers_count']:
+                        return
+                    cf = unit['fame']  # current fame
+                    target_fame = cf + math.log(target_customers / unit['customers_count'])
+                    ratio = (math.exp(target_fame) - math.exp(cf - cf**2 / 200)) / growth_rate
                 else:
                     ratio = 0
                 if ratio > 30:
@@ -2278,8 +2286,6 @@ class Virta:
                 return self.stop_advertisement(unit_id)
             else:
                 unit = self.units.select(id=unit_id)
-                if not unit:
-                    return
                 city = self.cities.select(city_id=unit['city_id'])
                 estimator_url = '%s/%s/ajax/unit/virtasement/%s/fame' % (
                                     self.domain, self.server, unit_id)
@@ -2360,6 +2366,4 @@ if __name__ == '__main__':
             v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
         else:
             v.set_advertisement(u, target_limit_fame=n/10, competence=175, innovation=(n>=55))'''
-        
-        
-        
+    

@@ -817,15 +817,14 @@ class MyVirta(Virta):
     
     
     def manage_shops_advertisement(self):
-        a = 1.0284675
-        b = 0.37111992
-        c = 2.1117
-        target_customers = 800000
+        target_customers = 400000
         for unit_id in self.units(name='*****'):
-            unit = v.unit_summary(unit_id)
-            population = v.cities.select(city_id=unit['city_id'])['population']
-            target_fame = math.log(target_customers / (c * population**b)) / a
-            print(unit_id, target_fame)
+            self.set_advertisement(unit_id, target_customers=target_customers, competence=175)
+    
+    
+    def manage_shops_innovations(self):
+        for unit_id in self.units(name='*****'):
+            self.set_innovation(unit_id, 'shop_parking')
     
     
     def distribute_shop_employees(self):
@@ -836,6 +835,7 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    #v.manage_shops_innovations()
     #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
