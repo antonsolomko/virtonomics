@@ -11,7 +11,7 @@ def delay(func):
     def wrapper(*args, **kwargs):
         secs = random.uniform(0.1, 0.2)
         print('.', end='')
-        time.sleep(secs)
+        #time.sleep(secs)
         return func(*args, **kwargs)
     return wrapper
 
@@ -816,25 +816,62 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def manage_shops_advertisement(self):
-        target_customers = 400000
-        for unit_id in self.units(name='*****'):
-            self.set_advertisement(unit_id, target_customers=target_customers, competence=175)
+    def set_shops_advertisement(self):
+        target_customers = 600000
+        for shop_id in self.units(name='*****'):
+            self.set_advertisement(shop_id, target_customers=target_customers, competence=175)
     
     
-    def manage_shops_innovations(self):
-        for unit_id in self.units(name='*****'):
-            self.set_innovation(unit_id, 'shop_parking')
+    def set_shops_innovations(self):
+        for shop_id in self.units(name='*****'):
+            self.set_innovation(shop_id, 'shop_parking')
     
     
     def distribute_shop_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        super().distribute_shop_employees(units, competence=154)
-            
+        super().distribute_shop_employees(units, competence=154, reserve=100)
+    
+    
+    def set_shop_default_prices(self, shop_id, factor=2):
+        trading_hall_prev = self.trading_hall(shop_id)
+        self.set_shop_sales_prices(shop_id)
+        trading_hall_new = self.trading_hall(shop_id)
+        offers = {}
+        for product_id in trading_hall_new:
+            if trading_hall_prev[product_id]['price'] > 0:
+                offers[product_id] = trading_hall_prev[product_id]['price']
+            else:
+                offers[product_id] = factor * trading_hall_new[product_id]['price']
+        self.set_shop_sale_prices(shop_id, offers)
+    
+    
+    def set_shops_default_prices(self, factor=2):
+        for shop_id in self.units(name='*****'):
+            self.set_shop_default_prices(shop_id)
+    
+    
+    def manage_shops(self):
+        reference_shop_id = 7559926
+        cities = [shop['city_id'] for shop in self.units(name='*****').values()]
+        cities = self.cities(city_id=cities)
+        products = Dict({p['product_id']: p for p in self.supply_contracts(reference_shop_id).values()})
+        markets = {}
+        for product_id in products:
+            markets[product_id] = {}
+            for city_id, city in cities.items():
+                geo = city['country_id'], city['region_id'], city['city_id']
+                markets[product_id][city_id] = self.retail_metrics(product_id, geo)
+            markets[product_id]['total_market_size'] = sum(m['local_market_size'] 
+                                                           for m in markets[product_id].values())
+        return markets, products
+        
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    #v.set_shops_default_prices()
+    #markets, products = v.manage_shops()
+    #v.manage_shops_advertisement()
     #v.manage_shops_innovations()
     #v.distribute_shop_employees()
     #v.read_messages()

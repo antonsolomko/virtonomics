@@ -2188,7 +2188,7 @@ class Virta:
         self.session.post(url, data=data)
     
     
-    def set_shop_sale_prices(self, shop_id):
+    def set_shop_sales_prices(self, shop_id):
         url = self.domain_ext + 'unit/view/%s' % shop_id
         data = {'auto_Price': 'Распродажные цены'}
         return self.session.post(url, data=data)
@@ -2317,7 +2317,7 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    def distribute_shop_employees(self, units, total_number=None, competence=None):
+    def distribute_shop_employees(self, units, total_number=None, competence=None, reserve=0):
         base = 10
         load = 1.2
         if not total_number:
@@ -2325,6 +2325,7 @@ class Virta:
                 total_number = load * base * competence * (competence + 3)
             else:
                 return
+        total_number -= reserve
         units = {unit_id: self.unit_summary(unit_id) for unit_id in units}
         employee_required = {unit_id: unit['employee_required']
                              for unit_id, unit in units.items()
@@ -2341,29 +2342,24 @@ class Virta:
             print(unit_id, employee_number, employee_level)
             self.set_employees(unit_id, quantity=employee_number, 
                                target_level=employee_level, trigger=1)
+    
+    
+    def product_move_to_warehouse(self, from_unit_id, product_id, to_unit_id, quantity=0):
+        url = self.domain_ext + 'unit/view/%s/product_move_to_warehouse/%s/0' % (
+                  from_unit_id, product_id)
+        data = {
+            'qty': quantity,
+            'unit': to_unit_id,
+            'doit': 1
+            }
+        return self.session.post(url, data=data)
 
 
 if __name__ == '__main__':
     v = Virta('olga')
-    coef = {
-            'Фешенебельный район': 0.15,
-            'Центр города': 1.0,
-            'Спальный район': 0.75,
-            'Окраина': 0.6,
-            'Пригород': 0.4
-        }
-    '''for n, u in enumerate(v.units(name='*****')):
-        fame = v.unit_summary(u)['fame']
-        unit = v.unit_summary(u)
-        pos = unit['customers_count']
-        pop = v.cities.select(city_id=unit['city_id'])['population']
-        sz = unit['size']
-        d = coef[unit['district_name']]
-        print('%s,%d,%d,%s,%d' % (fame, pop, sz, d, pos))
-        #print('%s,%d' % (fame, pos))
-        #v.set_advertisement(u, target_limit_fame=6.5)
-        if True:
-            v.set_advertisement(u, target_fame=n/10, competence=175, innovation=(n>=55))
-        else:
-            v.set_advertisement(u, target_limit_fame=n/10, competence=175, innovation=(n>=55))'''
     
+    '''products = v.supply_contracts(7559926)
+    offers = [c['offer_id'] for c in products.values()]
+    for shop_id in v.units(name='*****'):
+        for offer_id in offers:
+            v.create_supply_contract(shop_id, offer_id, 1, max_increase=0)'''
