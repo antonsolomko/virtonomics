@@ -842,7 +842,8 @@ class MyVirta(Virta):
         for product_id in trading_hall_new:
             if trading_hall_prev[product_id]['price'] > 0:
                 offers[product_id] = trading_hall_prev[product_id]['price']
-                #if offers[product_id]
+                if offers[product_id] < trading_hall_new[product_id]['price']:
+                    offers[product_id] = trading_hall_new[product_id]['price']
             else:
                 offers[product_id] = factor * trading_hall_new[product_id]['price']
         self.set_shop_sale_prices(shop_id, offers)
@@ -854,11 +855,13 @@ class MyVirta(Virta):
     
     
     def manage_shops(self):
-        reference_shop_id = 7559926
+        # Determine shops, cities and products that are traded
+        ref_shop_id = 7559926
+        products = Dict({p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()})
         shops = self.units(name='*****')
         cities = [shop['city_id'] for shop in shops.values()]
         cities = self.cities(city_id=cities)
-        products = Dict({p['product_id']: p for p in self.supply_contracts(reference_shop_id).values()})
+        
         # Read retail metrics
         markets = {}
         for product_id in products:
@@ -868,43 +871,44 @@ class MyVirta(Virta):
                 markets[product_id][city_id] = self.retail_metrics(product_id, geo)
             markets[product_id]['total_market_size'] = sum(m['local_market_size'] 
                                                            for m in markets[product_id].values())
+        
+        trading_halls = {shop_id: self.trading_halls(shop_id) for shop_id in shops}
+        contracts = {shop_id: self.supply_contracts(shop_id) for shop_id in shops}
+        
         # Distribute orders
+        orders = {}
         for shop_id, shop in shops.items():
-            contracts = self.supply_contracts(shop_id)
-            trading_hall = self.trading_hall(shop_id)
-            orders = {}
-            for contract in contracts.values():
+            trading_hall = trading_halls[shop_id]
+            orders[shop_id] = {}
+            for contract in contracts[shop_id].values():
                 product_id = contract['product_id']
                 market_size = markets[product_id][shop['city_id']]['local_market_size']
-                order = {}
                 if not trading_hall[product_id]['purchase']:
-                    order['quantity'] = int(contract['quantity_at_supplier_storage'] 
-                                            * market_size
-                                            / markets[product_id]['total_market_size'])
+                    quantity = (contract['quantity_at_supplier_storage'] 
+                                * market_size
+                                / markets[product_id]['total_market_size'])
                 else:
-                    order['quantity'] = trading_hall[product_id]['purchase']
-                #if order['quantity'] < 0.05 * market_size:
-                #    order['quantity'] = 0.05 * market_size
-                if order['quantity'] > 0.2 * market_size:
-                    order['quantity'] = 0.2 * market_size
-                if contract['supplier_company_id'] == self.company['id']:
-                    order['max_price'] = 0
-                    order['max_increase'] = 0
-                else:
-                    order['max_price'] = contract['price_constraint_max']
-                    order['max_increase'] = contract['price_constraint']
-                order['min_quality'] = contract['quality_constraint_min']
-                orders[contract['offer_id']] = order
-            self.set_supply_contracts(shop_id, orders)
+                    quantity = max(trading_hall[product_id]['purchase'],
+                                   1.01 * trading_hall[product_id]['sold'])
+                    if (trading_hall[product_id]['stock'] > trading_hall[product_id]['sold'] > 0
+                            and quantity > 1.05 * trading_hall[product_id]['sold']):
+                        quantity = 1.05 * trading_hall[product_id]['sold']
+                quantity = max(quantity, 0.01 * market_size)
+                quantity = min(quantity, 0.2 * market_size)
+                orders[shop_id][contract['offer_id']] = dict(quantity=int(quantity), max_increase=0)
+        
+        # Update orders
+        for shop_id in shops:
+            self.set_supply_contracts(shop_id, orders[shop_id])
         
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.set_shops_default_prices()
+    #v.set_shops_default_prices()
     v.manage_shops()
-    v.set_shops_advertisement()
+    #v.set_shops_advertisement()
     #v.set_shops_innovations()
-    v.distribute_shop_employees()
+    #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
     #global_offers = v.manage_shops()
