@@ -856,6 +856,8 @@ class MyVirta(Virta):
     
     def manage_shops(self):
         # Determine shops, cities and products that are traded
+        min_market_share = 0.01
+        max_market_share = 0.2
         ref_shop_id = 7559926
         products = Dict({p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()})
         shops = self.units(name='*****')
@@ -875,7 +877,42 @@ class MyVirta(Virta):
         trading_halls = {shop_id: self.trading_halls(shop_id) for shop_id in shops}
         contracts = {shop_id: self.supply_contracts(shop_id) for shop_id in shops}
         
-        # Distribute orders
+        target_sales = {}
+        for product_id, product in products.items():
+            total_sold = sum(trading_halls[shop_id][product_id]['sold'] for shop_id in shops)
+            if total_sold > 0:
+                average_price = sum(trading_halls[shop_id][product_id]['sold']
+                                    * trading_halls[shop_id][product_id]['price']
+                                    for shop_id in shops) / total_sold
+            else:
+                average_price = None
+            target_sales[product_id] = {}
+            for shop_id, shop in shops.items():
+                trade = trading_halls[shop_id][product_id]
+                market_size = markets[product_id][shop['city_id']]['local_market_size']
+                if trade['sold']:
+                    target_sale = trade['sold']
+                    if trade['stock'] == trade['purchase']:
+                        target_sale *= 1.05
+                    elif average_price:
+                        price_dev = trade['price'] / average_price
+                        price_dev = max(0.99, price_dev)
+                        price_dev = min(1.01, price_dev)
+                        target_sale *= price_dev
+                else:
+                    target_sale = (contracts[shop_id][product_id]['quantity_at_supplier_storage'] 
+                                   * market_size
+                                   / markets[product_id]['total_market_size'])
+            total_sales = sum(target_sales[product_id].values())
+            if total_sales > 0:
+                factor = product['quantity_at_supplier_storage'] / total_sales
+                for shop_id in target_sales[product_id]:
+                    target_sale = factor * target_sales[product_id][shop_id]
+                    target_sale = max(target_sale, min_market_share * market_size)
+                    target_sale = min(target_sale, max_market_share * market_size)  # correct
+                    target_sales[product_id][shop_id] = target_sale
+        
+        # Distribute sales
         orders = {}
         for shop_id, shop in shops.items():
             trading_hall = trading_halls[shop_id]
@@ -889,12 +926,12 @@ class MyVirta(Virta):
                                 / markets[product_id]['total_market_size'])
                 else:
                     quantity = max(trading_hall[product_id]['purchase'],
-                                   1.01 * trading_hall[product_id]['sold'])
+                                   1.05 * trading_hall[product_id]['sold'])
                     if (trading_hall[product_id]['stock'] > trading_hall[product_id]['sold'] > 0
                             and quantity > 1.05 * trading_hall[product_id]['sold']):
                         quantity = 1.05 * trading_hall[product_id]['sold']
-                quantity = max(quantity, 0.01 * market_size)
-                quantity = min(quantity, 0.2 * market_size)
+                quantity = max(quantity, min_market_share * market_size)
+                quantity = min(quantity, max_market_share * market_size)
                 orders[shop_id][contract['offer_id']] = dict(quantity=int(quantity), max_increase=0)
         
         # Update orders
