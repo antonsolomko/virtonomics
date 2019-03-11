@@ -49,6 +49,7 @@ class MyVirta(Virta):
             'lab2': 'Сотрудничество с CERN',
             'lab3': 'Производственная практика для ученых',
             'lab_equipment': 'Сверхпроводники',
+            'shop_advertisement': 'Партнёрский договор с рекламным агентством',
             'shop_parking': 'Автомобильная парковка',
             'shop_retail': 'Консалтинг мирового лидера ритейла',
             }
@@ -820,15 +821,15 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self):
-        target_customers = 600000
+    def set_shops_advertisement(self, target_customers = 600000):
         for shop_id in self.units(name='*****'):
-            self.set_advertisement(shop_id, target_customers=target_customers, competence=175)
+            self.set_advertisement(shop_id, target_customers=target_customers, 
+                                   competence=175, innovation=True)
     
     
     def set_shops_innovations(self):
         for shop_id in self.units(name='*****'):
-            self.set_innovation(shop_id, 'shop_parking')
+            self.set_innovation(shop_id, 'shop_advertisement')
             self.set_innovation(shop_id, 'shop_retail')
     
     
@@ -859,93 +860,118 @@ class MyVirta(Virta):
     
     
     def manage_shops(self):
-        # Determine shops, cities and products that are traded
-        min_market_share = 0.01
-        max_market_share = 0.2
-        max_adjustment = 0.02
-        sales_price_factor = 2
-        ref_shop_id = 7559926
+        min_market_share = 0.01  # минимальная доля рынка
+        max_market_share = 0.2  # максимальная доля рынка
+        max_adjustment = 0.02  # максимальных шаг изменения закупок и цены
+        sales_price_factor = 2  # коэффициент с распродажной цене для новых товаров
+        ref_shop_id = 7559926  # эталонный магазин, из которого считываем товары, которыми торгуем
         
+        # Вытягиваем из эталонного магазина список товаров, которыми торгуем
         products = Dict({p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()})
         shops = self.units(name='*****')
-        cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])
+        cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
         
         print('Reading shops info')
+        # Считываем инфу из всех торговых залов
         trading_halls = {shop_id: self.trading_hall(shop_id) for shop_id in shops}
         
         # Read retail metrics
         print('Reading markets info')
+        # Считаем объемы ранков
         markets = {}
         for product_id in products:
             markets[product_id] = {}
             for shop_id, shop in shops.items():
                 trade = trading_halls[shop_id][product_id]
                 if trade['market_share'] > 0:
+                    # Быстро оцениваем объем рынка исходя из доли и продаж
                     markets[product_id][shop['city_id']] = trade['sold'] / trade['market_share']
                 else:
+                    # Иначе читаем напрямую из гозничного отчета по городу
                     print('!', end='')
                     city = cities[shop['city_id']]
                     geo = city['country_id'], city['region_id'], city['city_id']
                     markets[product_id][shop['city_id']] = self.retail_metrics(
                         product_id, geo)['local_market_size']
+            # Считаем суммврный объем всех рынков для каждого товару
             markets[product_id]['total_market_size'] = sum(markets[product_id].values())
         
         # Distribute sales
         print('Distributing sales')
+        # Распределяем товары между магами
         target_sales = {}
         for product_id, product in products.items():
             if not product['quantity_at_supplier_storage']:
+                # Если на складе нет товара
                 target_sales[product_id] = {shop_id: 0 for shop_id in shops}
                 continue
                 
             # Compute mean price for a given product
+            # Считаем среднюю цену сбыта
             total_sold = sum(trading_halls[shop_id][product_id]['sold'] for shop_id in shops)
             if total_sold > 0:
+                # средняя цена
                 mean_price = sum(trading_halls[shop_id][product_id]['price']
                                  * trading_halls[shop_id][product_id]['sold']
                                  for shop_id in shops) / total_sold
+                # стандартное отклоние цены от средней
                 std_dev = (sum((trading_halls[shop_id][product_id]['price'] - mean_price) ** 2
                                * trading_halls[shop_id][product_id]['sold']
                                for shop_id in shops) / total_sold) ** 0.5
+                # наклон сигмоиды
                 adjustment_rate =  max_adjustment * mean_price / std_dev
             else:
                 mean_price = None
-                adjustment_rate = max_adjustment
+                adjustment_rate = max_adjustment  # наклон сигмоиды
             print(product['product_name'], round(mean_price), round(std_dev))
             
+            # Считаем, сколько товара хотим сбывать в каждом магазине
             target_sales[product_id] = {}
             for shop_id, shop in shops.items():
                 trade = trading_halls[shop_id][product_id]
                 market_size = markets[product_id][shop['city_id']]
                 if trade['sold']:
+                    # Отталкиваемся от продаж, если таковые были
                     target_sale = trade['sold']
                     if trade['stock'] == trade['purchase']:
+                        # Если распродали весь товар, увеличить долю на 5%
                         target_sale *= 1.05
                     elif mean_price:
+                        # Если имеем точное значение спроса, корректируем пропорционально
+                        # отклонению цены от средней
                         target_sale *= sigmoid(trade['price'] / mean_price, 
                                                adjustment_rate, max_adjustment)
                 else:
+                    # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
                     target_sale = (product['quantity_at_supplier_storage'] 
                                    * market_size
                                    / markets[product_id]['total_market_size'])
                 target_sales[product_id][shop_id] = target_sale
             total_sales = sum(target_sales[product_id].values())
             factor = product['quantity_at_supplier_storage'] / total_sales
+            # Найденные объемы не обязательно суммируются в кол-во товара на складе
+            # Поэтому распределяем весь имеющийся товар пропорционально
             for shop_id, shop in shops.items():
                 market_size = markets[product_id][shop['city_id']]
                 target_sale = factor * target_sales[product_id][shop_id]
+                # доли рынка, не выходим за установленные рамки
                 target_sale = max(target_sale, min_market_share * market_size)
-                target_sale = min(target_sale, max_market_share * market_size)  # correct
+                target_sale = min(target_sale, max_market_share * market_size)
+                # за счет таких срезок суммарный объем может немного отличаться от нужного, игнорируем
                 target_sales[product_id][shop_id] = int(target_sale)
+                
         
         print('Managing shops')
+        # Корректируем магазины
         for shop_id, shop in shops.items():
             print(shop_id)
             # Update orders
+            # Снабжение
             orders = {}
             for contract in self.supply_contracts(shop_id).values():
                 if contract['product_id'] not in products:
                     continue
+                # заказываем сколько распределили
                 orders[contract['offer_id']] = {
                     'quantity': target_sales[contract['product_id']][shop_id], 
                     'max_increase': 0
@@ -953,37 +979,45 @@ class MyVirta(Virta):
             self.set_supply_contracts(shop_id, orders)
         
             # Update prices
+            # Сбрасываем цены в ноль
             offers = {t['ids']: 0 for t in trading_halls[shop_id].values()}
             self.set_shop_sale_prices(shop_id, offers)
+            # Устанавливаем распродажные цены
             self.set_shop_sales_prices(shop_id)
+            # Считывает торговый зал
             trading_hall_sales = self.trading_hall(shop_id)
             offers = {}
             for product_id, trade in trading_halls[shop_id].items():
                 if product_id not in products:
-                    continue
-                if trade['price'] > 0:
+                    new_price = trade['price']  # возвращаем старую цену
+                elif trade['price'] > 0:
                     new_price = trade['price']
                     if trade['sold'] > 0:
                         if trade['stock'] == trade['purchase']:
+                            # если продан весь товар, повышаем цену
                             new_price *= 1.05
                         else:
+                            # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
                                                  1, max_adjustment)
-                    # Never go below sales price
+                    # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
                         new_price = trading_hall_sales[product_id]['price']
                 else:
-                    # Default starting price for new products
+                    # Цена по умолчанию для новых продуктов
                     new_price = sales_price_factor * trading_hall_sales[product_id]['price']
                 offers[trade['ids']] = round(new_price, 2)
             self.set_shop_sale_prices(shop_id, offers)
             
             # Move surpluses back to warehouse
+            #Вывозим излишки товара обратно на склад
             for product_id, trade in trading_halls[shop_id].items():
                 if product_id not in products:
                     continue
                 market_size = markets[product_id][shop['city_id']]
+                # оставляем двухдневный запас или максимальную долю рынка
                 need = min(2 * target_sales[product_id][shop_id], max_market_share * market_size)
+                #  лишнее вывозим
                 if trade['stock'] > need:
                     self.product_move_to_warehouse(
                         shop_id, product_id, products[product_id]['supplier_id'], trade['stock'] - need)
@@ -992,9 +1026,9 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    v.manage_shops()
-    #v.set_shops_advertisement()
-    #v.set_shops_innovations()
+    #v.manage_shops()
+    v.set_shops_advertisement()
+    v.set_shops_innovations()
     #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
