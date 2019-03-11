@@ -7,11 +7,15 @@ import math
 import random
 
 
+def sigmoid(x, slope=1, bound=1):
+    return  1 + bound * (2 / (1 + math.exp(-2 * slope * (x-1) / bound)) - 1) if bound>0 else 0
+
+
 def delay(func):
     def wrapper(*args, **kwargs):
-        secs = random.uniform(0.1, 0.2)
+        secs = random.uniform(0., 0.1)
         print('.', end='')
-        #time.sleep(secs)
+        time.sleep(secs)
         return func(*args, **kwargs)
     return wrapper
 
@@ -858,85 +862,131 @@ class MyVirta(Virta):
         # Determine shops, cities and products that are traded
         min_market_share = 0.01
         max_market_share = 0.2
+        max_adjustment = 0.02
+        sales_price_factor = 2
         ref_shop_id = 7559926
+        
         products = Dict({p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()})
         shops = self.units(name='*****')
-        cities = [shop['city_id'] for shop in shops.values()]
-        cities = self.cities(city_id=cities)
+        cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])
+        
+        print('Reading shops info')
+        trading_halls = {shop_id: self.trading_hall(shop_id) for shop_id in shops}
         
         # Read retail metrics
+        print('Reading markets info')
         markets = {}
         for product_id in products:
             markets[product_id] = {}
-            for city_id, city in cities.items():
-                geo = city['country_id'], city['region_id'], city['city_id']
-                markets[product_id][city_id] = self.retail_metrics(product_id, geo)
-            markets[product_id]['total_market_size'] = sum(m['local_market_size'] 
-                                                           for m in markets[product_id].values())
+            for shop_id, shop in shops.items():
+                trade = trading_halls[shop_id][product_id]
+                if trade['market_share'] > 0:
+                    markets[product_id][shop['city_id']] = trade['sold'] / trade['market_share']
+                else:
+                    print('!', end='')
+                    city = cities[shop['city_id']]
+                    geo = city['country_id'], city['region_id'], city['city_id']
+                    markets[product_id][shop['city_id']] = self.retail_metrics(
+                        product_id, geo)['local_market_size']
+            markets[product_id]['total_market_size'] = sum(markets[product_id].values())
         
-        trading_halls = {shop_id: self.trading_halls(shop_id) for shop_id in shops}
-        contracts = {shop_id: self.supply_contracts(shop_id) for shop_id in shops}
-        
+        # Distribute sales
+        print('Distributing sales')
         target_sales = {}
         for product_id, product in products.items():
+            if not product['quantity_at_supplier_storage']:
+                target_sales[product_id] = {shop_id: 0 for shop_id in shops}
+                continue
+                
+            # Compute mean price for a given product
             total_sold = sum(trading_halls[shop_id][product_id]['sold'] for shop_id in shops)
             if total_sold > 0:
-                average_price = sum(trading_halls[shop_id][product_id]['sold']
-                                    * trading_halls[shop_id][product_id]['price']
-                                    for shop_id in shops) / total_sold
+                mean_price = sum(trading_halls[shop_id][product_id]['price']
+                                 * trading_halls[shop_id][product_id]['sold']
+                                 for shop_id in shops) / total_sold
+                std_dev = (sum((trading_halls[shop_id][product_id]['price'] - mean_price) ** 2
+                               * trading_halls[shop_id][product_id]['sold']
+                               for shop_id in shops) / total_sold) ** 0.5
+                adjustment_rate =  max_adjustment * mean_price / std_dev
             else:
-                average_price = None
+                mean_price = None
+                adjustment_rate = max_adjustment
+            print(product['product_name'], round(mean_price), round(std_dev))
+            
             target_sales[product_id] = {}
             for shop_id, shop in shops.items():
                 trade = trading_halls[shop_id][product_id]
-                market_size = markets[product_id][shop['city_id']]['local_market_size']
+                market_size = markets[product_id][shop['city_id']]
                 if trade['sold']:
                     target_sale = trade['sold']
                     if trade['stock'] == trade['purchase']:
                         target_sale *= 1.05
-                    elif average_price:
-                        price_dev = trade['price'] / average_price
-                        price_dev = max(0.99, price_dev)
-                        price_dev = min(1.01, price_dev)
-                        target_sale *= price_dev
+                    elif mean_price:
+                        target_sale *= sigmoid(trade['price'] / mean_price, 
+                                               adjustment_rate, max_adjustment)
                 else:
-                    target_sale = (contracts[shop_id][product_id]['quantity_at_supplier_storage'] 
+                    target_sale = (product['quantity_at_supplier_storage'] 
                                    * market_size
                                    / markets[product_id]['total_market_size'])
+                target_sales[product_id][shop_id] = target_sale
             total_sales = sum(target_sales[product_id].values())
-            if total_sales > 0:
-                factor = product['quantity_at_supplier_storage'] / total_sales
-                for shop_id in target_sales[product_id]:
-                    target_sale = factor * target_sales[product_id][shop_id]
-                    target_sale = max(target_sale, min_market_share * market_size)
-                    target_sale = min(target_sale, max_market_share * market_size)  # correct
-                    target_sales[product_id][shop_id] = target_sale
+            factor = product['quantity_at_supplier_storage'] / total_sales
+            for shop_id, shop in shops.items():
+                market_size = markets[product_id][shop['city_id']]
+                target_sale = factor * target_sales[product_id][shop_id]
+                target_sale = max(target_sale, min_market_share * market_size)
+                target_sale = min(target_sale, max_market_share * market_size)  # correct
+                target_sales[product_id][shop_id] = int(target_sale)
         
-        # Distribute sales
-        orders = {}
+        print('Managing shops')
         for shop_id, shop in shops.items():
-            trading_hall = trading_halls[shop_id]
-            orders[shop_id] = {}
-            for contract in contracts[shop_id].values():
-                product_id = contract['product_id']
-                market_size = markets[product_id][shop['city_id']]['local_market_size']
-                if not trading_hall[product_id]['purchase']:
-                    quantity = (contract['quantity_at_supplier_storage'] 
-                                * market_size
-                                / markets[product_id]['total_market_size'])
-                else:
-                    quantity = max(trading_hall[product_id]['purchase'],
-                                   1.05 * trading_hall[product_id]['sold'])
-                    if (trading_hall[product_id]['stock'] > trading_hall[product_id]['sold'] > 0
-                            and quantity > 1.05 * trading_hall[product_id]['sold']):
-                        quantity = 1.05 * trading_hall[product_id]['sold']
-                quantity = max(quantity, min_market_share * market_size)
-                quantity = min(quantity, max_market_share * market_size)
-                orders[shop_id][contract['offer_id']] = dict(quantity=int(quantity), max_increase=0)
+            print(shop_id)
+            # Update orders
+            orders = {}
+            for contract in self.supply_contracts(shop_id).values():
+                if contract['product_id'] not in products:
+                    continue
+                orders[contract['offer_id']] = {
+                    'quantity': target_sales[contract['product_id']][shop_id], 
+                    'max_increase': 0
+                    }
+            self.set_supply_contracts(shop_id, orders)
         
-        # Update orders
-        for shop_id in shops:
-            self.set_supply_contracts(shop_id, orders[shop_id])
+            # Update prices
+            offers = {t['ids']: 0 for t in trading_halls[shop_id].values()}
+            self.set_shop_sale_prices(shop_id, offers)
+            self.set_shop_sales_prices(shop_id)
+            trading_hall_sales = self.trading_hall(shop_id)
+            offers = {}
+            for product_id, trade in trading_halls[shop_id].items():
+                if product_id not in products:
+                    continue
+                if trade['price'] > 0:
+                    new_price = trade['price']
+                    if trade['sold'] > 0:
+                        if trade['stock'] == trade['purchase']:
+                            new_price *= 1.05
+                        else:
+                            new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
+                                                 1, max_adjustment)
+                    # Never go below sales price
+                    if new_price < trading_hall_sales[product_id]['price']:
+                        new_price = trading_hall_sales[product_id]['price']
+                else:
+                    # Default starting price for new products
+                    new_price = sales_price_factor * trading_hall_sales[product_id]['price']
+                offers[trade['ids']] = round(new_price, 2)
+            self.set_shop_sale_prices(shop_id, offers)
+            
+            # Move surpluses back to warehouse
+            for product_id, trade in trading_halls[shop_id].items():
+                if product_id not in products:
+                    continue
+                market_size = markets[product_id][shop['city_id']]
+                need = min(2 * target_sales[product_id][shop_id], max_market_share * market_size)
+                if trade['stock'] > need:
+                    self.product_move_to_warehouse(
+                        shop_id, product_id, products[product_id]['supplier_id'], trade['stock'] - need)
         
     
 if __name__ == '__main__':

@@ -2357,10 +2357,10 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    '''pos = {}
+    pos = {}
     for shop_id in v.units(name='*****'):
         shop = v.unit_summary(shop_id)
-        pos[shop_id] = shop['customers_count']'''
+        pos[shop_id] = shop['customers_count']
     
     '''products = v.supply_contracts(7559926)
     offers = [c['offer_id'] for c in products.values()]
