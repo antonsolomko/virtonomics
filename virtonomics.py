@@ -721,7 +721,7 @@ class Virta:
         return Dict(result)(trademark=0)
     
     
-    def trading_hall(self, shop_id):
+    def trading_hall(self, shop_id, cache=False):
         url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
         page = self.session.tree(url)
         row_xp = '//input[@type="text"]/ancestor::tr'
