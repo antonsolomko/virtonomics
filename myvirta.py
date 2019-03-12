@@ -1021,7 +1021,7 @@ class MyVirta(Virta):
                 if trade['stock'] > need:
                     self.product_move_to_warehouse(
                         shop_id, product_id, products[product_id]['supplier_id'], trade['stock'] - need)
-        
+                    
     
 if __name__ == '__main__':
     v = MyVirta('olga')
