@@ -2378,7 +2378,7 @@ class Virta:
                 base * competence**2 * min(1.2, 1/load)**2 / employee_number, 1.4)
             employee_level = int(100 * employee_level) / 100
             print(unit_id, employee_number, employee_level)
-            self.set_employees(unit_id, quantity=employee_number, 
+            self.set_employees(unit_id, quantity=employee_number, salary_max=50000,
                                target_level=employee_level, trigger=1)
     
     
@@ -2406,8 +2406,6 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    #v.initialize_db()
-    th = v.trading_hall(7561434, 1)
     '''pos = {}
     for shop_id in v.units(name='*****'):
         shop = v.unit_summary(shop_id)

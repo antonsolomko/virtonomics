@@ -863,17 +863,17 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.2  # максимальная доля рынка
         max_adjustment = 0.02  # максимальных шаг изменения закупок и цены
-        sales_price_factor = 2  # коэффициент с распродажной цене для новых товаров
-        ref_shop_id = 7559926  # эталонный магазин, из которого считываем товары, которыми торгуем
+        sales_price_factor = 2  # множитель к распродажной цене для новых товаров
+        ref_shop_id = 7559926  # ведущий магазин
         
-        # Вытягиваем из эталонного магазина список товаров, которыми торгуем
-        products = Dict({p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()})
+        # Вытягиваем из ведущего магазина список товаров, которыми торгуем
+        products = {p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()}
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
         
         print('Reading shops info')
-        # Считываем инфу из всех торговых залов
-        trading_halls = {shop_id: self.trading_hall(shop_id) for shop_id in shops}
+        # Считываем инфу из всех торговых залов (из БД, если уже считывали)
+        trading_halls = {shop_id: self.trading_hall(shop_id, cache=True) for shop_id in shops}
         
         # Read retail metrics
         print('Reading markets info')
@@ -887,7 +887,7 @@ class MyVirta(Virta):
                     # Быстро оцениваем объем рынка исходя из доли и продаж
                     markets[product_id][shop['city_id']] = trade['sold'] / trade['market_share']
                 else:
-                    # Иначе читаем напрямую из гозничного отчета по городу
+                    # Иначе читаем напрямую из розничного отчета по городу
                     print('!', end='')
                     city = cities[shop['city_id']]
                     geo = city['country_id'], city['region_id'], city['city_id']
@@ -959,7 +959,6 @@ class MyVirta(Virta):
                 target_sale = min(target_sale, max_market_share * market_size)
                 # за счет таких срезок суммарный объем может немного отличаться от нужного, игнорируем
                 target_sales[product_id][shop_id] = int(target_sale)
-                
         
         print('Managing shops')
         # Корректируем магазины
@@ -977,17 +976,19 @@ class MyVirta(Virta):
                     'max_increase': 0
                     }
             self.set_supply_contracts(shop_id, orders)
-        
+            
             # Update prices
             # Сбрасываем цены в ноль
             offers = {t['ids']: 0 for t in trading_halls[shop_id].values()}
             self.set_shop_sale_prices(shop_id, offers)
             # Устанавливаем распродажные цены
             self.set_shop_sales_prices(shop_id)
-            # Считывает торговый зал
-            trading_hall_sales = self.trading_hall(shop_id)
+            # Считываем торговый зал
+            trading_hall_sales = self.trading_hall(shop_id, cache=False)
             offers = {}
             for product_id, trade in trading_halls[shop_id].items():
+                # на случай, если уже вывезли часть товара
+                trade['current_stock'] = trading_hall_sales[product_id]['stock']  
                 if product_id not in products:
                     new_price = trade['price']  # возвращаем старую цену
                 elif trade['price'] > 0:
@@ -1017,10 +1018,11 @@ class MyVirta(Virta):
                 market_size = markets[product_id][shop['city_id']]
                 # оставляем двухдневный запас или максимальную долю рынка
                 need = min(2 * target_sales[product_id][shop_id], max_market_share * market_size)
-                #  лишнее вывозим
-                if trade['stock'] > need:
+                # лишнее вывозим
+                if trade['current_stock'] > need:
                     self.product_move_to_warehouse(
-                        shop_id, product_id, products[product_id]['supplier_id'], trade['stock'] - need)
+                        shop_id, product_id, products[product_id]['supplier_id'], 
+                        trade['current_stock'] - need)
                     
     
 if __name__ == '__main__':
@@ -1029,7 +1031,7 @@ if __name__ == '__main__':
     #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
-    v.distribute_shop_employees()
+    #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
     #global_offers = v.manage_shops()
