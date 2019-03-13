@@ -836,7 +836,7 @@ class MyVirta(Virta):
     def distribute_shop_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        super().distribute_shop_employees(units, competence=154, reserve=100)
+        super().distribute_shop_employees(units, competence=156, reserve=100)
     
     
     def set_shop_default_prices(self, shop_id, factor=2):
@@ -861,7 +861,7 @@ class MyVirta(Virta):
     
     def manage_shops(self):
         min_market_share = 0.01  # минимальная доля рынка
-        max_market_share = 0.2  # максимальная доля рынка
+        max_market_share = 0.12 + TODAY.day/100  # максимальная доля рынка
         max_adjustment = 0.02  # максимальных шаг изменения закупок и цены
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
