@@ -13,7 +13,7 @@ def sigmoid(x, slope=1, bound=1):
 
 def delay(func):
     def wrapper(*args, **kwargs):
-        secs = random.uniform(0., 0.1)
+        secs = random.uniform(0.0, 0.2)
         print('.', end='')
         time.sleep(secs)
         return func(*args, **kwargs)
@@ -66,7 +66,7 @@ class MyVirta(Virta):
                       8: 'Сахар',
                       9: 'Кукуруза',
                       10: 'Кукуруза',
-                      11: 'Выращивание помидоров',
+                      11: 'Помидоры',
                      },
             7549945: {8: 'Апельсины',
                       9: 'Апельсины',
@@ -996,7 +996,7 @@ class MyVirta(Virta):
                     if trade['sold'] > 0:
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
-                            new_price *= 1.05
+                            new_price *= 1.03
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],

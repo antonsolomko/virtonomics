@@ -376,6 +376,7 @@ class Virta:
         #    return self.driver
             
         elif attrname == 'db' or attrname == 'conn':
+            print(self.path + self.db_name)
             self.conn = sqlite3.connect(self.path + self.db_name)
             self.db = self.conn.cursor()
             self.db.row_factory = dict_factory
@@ -1732,7 +1733,7 @@ class Virta:
         """
         
         levels = self.technologies(unittype_id)
-        max_level = max(t['level'] for t in levels(status=(1,2,4)))
+        max_level = max((t['level'] for t in levels(status=(1,2,4))), default=1)
         result = [t['level'] for t in levels
                   if t['level'] <= max_level and t['status'] not in (1,2)]
         result.append(max_level + 1)
