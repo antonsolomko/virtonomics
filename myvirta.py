@@ -863,6 +863,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.01  # максимальных шаг изменения закупок и цены
+        elasticity = 10
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
         
@@ -1013,7 +1014,7 @@ class MyVirta(Virta):
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
-                                                 0.1, max_adjustment)
+                                                 1 / elasticity, max_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
                         new_price = trading_hall_sales[product_id]['price']
