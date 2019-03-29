@@ -821,7 +821,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers = 600000):
+    def set_shops_advertisement(self, target_customers=640000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, 
                                    competence=175, innovation=True)
@@ -859,17 +859,30 @@ class MyVirta(Virta):
             self.set_shop_default_prices(shop_id)
     
     
-    def manage_shops(self):
+    def manage_shops(self, propagate_contracts=False):
         min_market_share = 0.01  # минимальная доля рынка
-        max_market_share = 0.12 + TODAY.day/100  # максимальная доля рынка
-        max_adjustment = 0.02  # максимальных шаг изменения закупок и цены
+        max_market_share = 0.4  # максимальная доля рынка
+        max_adjustment = 0.01  # максимальных шаг изменения закупок и цены
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
         
-        # Вытягиваем из ведущего магазина список товаров, которыми торгуем
-        products = {p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()}
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
+        
+        if propagate_contracts:
+            print('Copying contracts')
+            ref_contracts = self.supply_contracts(ref_shop_id)  # вытягиваем из ведущего магазина список контрактов
+            for shop_id in shops:
+                print(shop_id)
+                contracts = self.supply_contracts(shop_id)
+                for offer_id in ref_contracts:
+                    if offer_id not in contracts:
+                        print('+', offer_id)
+                        self.create_supply_contract(shop_id, offer_id, max_increase=0)
+            #return
+            
+        # Вытягиваем из ведущего магазина список товаров, которыми торгуем
+        products = {p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()}
         
         print('Reading shops info')
         # Считываем инфу из всех торговых залов (из БД, если уже считывали)
@@ -996,11 +1009,11 @@ class MyVirta(Virta):
                     if trade['sold'] > 0:
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
-                            new_price *= 1.03
+                            new_price *= 1.05
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
-                                                 1, max_adjustment)
+                                                 0.1, max_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
                         new_price = trading_hall_sales[product_id]['price']
@@ -1028,7 +1041,7 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    #v.manage_shops()
+    #v.manage_shops(1)
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
     #v.distribute_shop_employees()

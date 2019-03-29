@@ -2407,6 +2407,7 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    v.create_supply_contract(7559926, 8477266, max_increase=0)
     '''pos = {}
     for shop_id in v.units(name='*****'):
         shop = v.unit_summary(shop_id)
@@ -2417,3 +2418,4 @@ if __name__ == '__main__':
     for shop_id in v.units(name='*****'):
         for offer_id in offers:
             v.create_supply_contract(shop_id, offer_id, 1, max_increase=0)'''
+            
