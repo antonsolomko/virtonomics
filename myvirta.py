@@ -467,7 +467,7 @@ class MyVirta(Virta):
         new_research = {}
         for unittype_id in self.unittypes(need_technology=True):
             if self.unittypes[unittype_id]['kind'] in ['mine', 'farm', 
-                    'orchard', 'fishingbase']:
+                    'orchard', 'fishingbase', 'sawmill']:
                 continue
             for level in self.researchable_technologies(unittype_id):
                 if not current_research.get(unittype_id, {}).get(level, []):
@@ -821,7 +821,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=640000):
+    def set_shops_advertisement(self, target_customers=650000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, 
                                    competence=175, innovation=True)
@@ -862,8 +862,8 @@ class MyVirta(Virta):
     def manage_shops(self, propagate_contracts=False):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
-        max_adjustment = 0.01  # максимальных шаг изменения закупок и цены
-        elasticity = 10
+        max_adjustment = 0.02  # максимальных шаг изменения закупок
+        elasticity = 10  # 20
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
         
@@ -937,7 +937,6 @@ class MyVirta(Virta):
             else:
                 mean_price = None
                 adjustment_rate = max_adjustment  # наклон сигмоиды
-            print(product['product_name'], round(mean_price), round(std_dev))
             
             # Считаем, сколько товара хотим сбывать в каждом магазине
             target_sales[product_id] = {}
@@ -1010,7 +1009,7 @@ class MyVirta(Virta):
                     if trade['sold'] > 0:
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
-                            new_price *= 1.05
+                            new_price *= 1 + 2 * max_adjustment
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
@@ -1042,11 +1041,10 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    #v.manage_shops(1)
+    #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
     #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
-    #global_offers = v.manage_shops()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
