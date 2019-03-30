@@ -821,7 +821,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=650000):
+    def set_shops_advertisement(self, target_customers=700000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, 
                                    competence=175, innovation=True)
@@ -836,7 +836,7 @@ class MyVirta(Virta):
     def distribute_shop_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        super().distribute_shop_employees(units, competence=156, reserve=100)
+        return super().distribute_shop_employees(units, competence=156, reserve=100)
     
     
     def set_shop_default_prices(self, shop_id, factor=2):
@@ -939,7 +939,7 @@ class MyVirta(Virta):
                 adjustment_rate = max_adjustment  # наклон сигмоиды
             
             # Считаем, сколько товара хотим сбывать в каждом магазине
-            target_sales[product_id] = {}
+            target = {}
             for shop_id, shop in shops.items():
                 trade = trading_halls[shop_id][product_id]
                 market_size = markets[product_id][shop['city_id']]
@@ -959,19 +959,50 @@ class MyVirta(Virta):
                     target_sale = (product['quantity_at_supplier_storage'] 
                                    * market_size
                                    / markets[product_id]['total_market_size'])
-                target_sales[product_id][shop_id] = target_sale
-            total_sales = sum(target_sales[product_id].values())
-            factor = product['quantity_at_supplier_storage'] / total_sales
+                target[shop_id] = (max(1, target_sale),
+                                   max(1, min_market_share * market_size),
+                                   max(1, max_market_share * market_size)
+                                   )
+                
             # Найденные объемы не обязательно суммируются в кол-во товара на складе
             # Поэтому распределяем весь имеющийся товар пропорционально
-            for shop_id, shop in shops.items():
-                market_size = markets[product_id][shop['city_id']]
-                target_sale = factor * target_sales[product_id][shop_id]
-                # доли рынка, не выходим за установленные рамки
-                target_sale = max(target_sale, min_market_share * market_size)
-                target_sale = min(target_sale, max_market_share * market_size)
-                # за счет таких срезок суммарный объем может немного отличаться от нужного, игнорируем
-                target_sales[product_id][shop_id] = int(target_sale)
+            def total(factor):
+                return sum(int(min(max(factor * t, mint), maxt)) 
+                           for (t, mint, maxt) in target.values())
+            
+            target_sales[product_id] = {}
+            factor0 = 0
+            factor1 = max(maxt / t for (t, mint, maxt) in target.values())
+            if total(factor0) >= product['quantity_at_supplier_storage']:
+                total_min = total(factor0)
+                for shop_id in shops:
+                    t, mint, maxt = target[shop_id]
+                    target_sale = mint * product['quantity_at_supplier_storage'] / total_min
+                    target_sales[product_id][shop_id] = int(target_sale)
+            elif total(factor1) <= product['quantity_at_supplier_storage']:
+                for shop_id in shops:
+                    t, mint, maxt = target[shop_id]
+                    target_sales[product_id][shop_id] = int(maxt)
+            else:
+                total_sales0 = total(factor0)
+                total_sales1 = total(factor1)
+                while total_sales0 < total_sales1:
+                    factor = (factor0 + factor1) / 2
+                    if factor == factor0 or factor == factor1:
+                        break
+                    if total(factor) < product['quantity_at_supplier_storage']:
+                        factor0 = factor
+                        total_sales0 = total(factor0)
+                    else:
+                        factor1 = factor
+                        total_sales1 = total(factor1)
+                error0 = abs(total(factor0) - product['quantity_at_supplier_storage'])
+                error1 = abs(total(factor1) - product['quantity_at_supplier_storage'])
+                factor = factor0 if error0 <= error1 else factor1
+                for shop_id, shop in shops.items():
+                    t, mint, maxt = target[shop_id]
+                    target_sale = min(max(factor * t, mint), maxt)
+                    target_sales[product_id][shop_id] = int(target_sale)
         
         print('Managing shops')
         # Корректируем магазины
@@ -1041,7 +1072,7 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    #v.manage_shops()
+    v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
     #v.distribute_shop_employees()

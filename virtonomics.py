@@ -2381,6 +2381,7 @@ class Virta:
             print(unit_id, employee_number, employee_level)
             self.set_employees(unit_id, quantity=employee_number, salary_max=50000,
                                target_level=employee_level, trigger=1)
+        return factor
     
     
     def product_move_to_warehouse(self, from_unit_id, product_id, to_unit_id, quantity=0):
