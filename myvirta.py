@@ -859,7 +859,20 @@ class MyVirta(Virta):
             self.set_shop_default_prices(shop_id)
     
     
-    def manage_shops(self, propagate_contracts=False):
+    def propagate_contracts(self, reference_shop=7559926):
+        print('Copying contracts')
+        shops = self.units(name='*****')
+        ref_contracts = self.supply_contracts(reference_shop)  # вытягиваем из ведущего магазина список контрактов
+        for shop_id in shops:
+            print(shop_id)
+            contracts = self.supply_contracts(shop_id)
+            for offer_id in ref_contracts:
+                if offer_id not in contracts:
+                    print('+', offer_id)
+                    self.create_supply_contract(shop_id, offer_id, max_increase=0)
+    
+    
+    def manage_shops(self):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.02  # максимальных шаг изменения закупок
@@ -869,19 +882,6 @@ class MyVirta(Virta):
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
-        
-        if propagate_contracts:
-            print('Copying contracts')
-            ref_contracts = self.supply_contracts(ref_shop_id)  # вытягиваем из ведущего магазина список контрактов
-            for shop_id in shops:
-                print(shop_id)
-                contracts = self.supply_contracts(shop_id)
-                for offer_id in ref_contracts:
-                    if offer_id not in contracts:
-                        print('+', offer_id)
-                        self.create_supply_contract(shop_id, offer_id, max_increase=0)
-            #return
-            
         # Вытягиваем из ведущего магазина список товаров, которыми торгуем
         products = {p['product_id']: p for p in self.supply_contracts(ref_shop_id).values()}
         
@@ -1072,7 +1072,8 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    v.manage_shops()
+    v.propagate_contracts()
+    #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
     #v.distribute_shop_employees()
