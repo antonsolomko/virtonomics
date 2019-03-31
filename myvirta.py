@@ -879,6 +879,7 @@ class MyVirta(Virta):
         elasticity = 10  # 20
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
+        stockpile_days = 3
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
