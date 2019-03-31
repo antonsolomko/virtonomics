@@ -376,7 +376,6 @@ class Virta:
         #    return self.driver
             
         elif attrname == 'db' or attrname == 'conn':
-            print(self.path + self.db_name)
             self.conn = sqlite3.connect(self.path + self.db_name)
             self.db = self.conn.cursor()
             self.db.row_factory = dict_factory

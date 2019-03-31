@@ -889,6 +889,13 @@ class MyVirta(Virta):
         # Считываем инфу из всех торговых залов (из БД, если уже считывали)
         trading_halls = {shop_id: self.trading_hall(shop_id, cache=True) for shop_id in shops}
         
+        clearance_count = {product_id: [] for product_id in products}
+        for shop_id in shops:
+            for product_id, trade in trading_halls[shop_id].items():
+                clearance_count[product_id].append(trade['stock'] == trade['purchase'] and trade['sold'] > 0)
+        clearance_rate = {product_id: sum(count) / max(1, len(count)) 
+                          for (product_id, count) in clearance_count.items()}
+        
         # Read retail metrics
         print('Reading markets info')
         # Считаем объемы ранков
@@ -1040,10 +1047,7 @@ class MyVirta(Virta):
                     if trade['sold'] > 0:
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
-                            new_price *= 1 + 2 * max_adjustment
-                            # временное ускорение для осетра
-                            if product_id in [335177]:
-                                new_price *= 1.2
+                            new_price *= 1 + max_adjustment * (1 + 9*clearance_rate[product_id])
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
@@ -1075,7 +1079,7 @@ class MyVirta(Virta):
 if __name__ == '__main__':
     v = MyVirta('olga')
     #v.set_shops_default_prices()
-    v.propagate_contracts()
+    #v.propagate_contracts()
     #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
