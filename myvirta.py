@@ -1041,6 +1041,9 @@ class MyVirta(Virta):
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
                             new_price *= 1 + 2 * max_adjustment
+                            # временное ускорение для осетра
+                            if product_id in [335177]:
+                                new_price *= 1.2
                         else:
                             # иначе, корректируем под требуемый объем продаж
                             new_price *= sigmoid(trade['sold'] / target_sales[product_id][shop_id],
