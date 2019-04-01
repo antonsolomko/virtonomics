@@ -836,7 +836,7 @@ class MyVirta(Virta):
     def distribute_shop_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        return super().distribute_shop_employees(units, competence=156, reserve=100)
+        return super().distribute_shop_employees(units, competence=157, reserve=100)
     
     
     def set_shop_default_prices(self, shop_id, factor=2):
@@ -876,10 +876,9 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.02  # максимальных шаг изменения закупок
-        elasticity = 10  # 20
+        elasticity = min(20, 9 + TODAY.day) if TODAY.month==4 else 20  # 20
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         ref_shop_id = 7559926  # ведущий магазин
-        stockpile_days = 3
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
@@ -1084,7 +1083,7 @@ if __name__ == '__main__':
     #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
-    #v.distribute_shop_employees()
+    v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
