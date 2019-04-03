@@ -120,11 +120,12 @@ class MyVirta(Virta):
         page = self.session.tree(url)
         xp = '//input[@name="member[]"]/../..//a[contains(@href,"company/view")]/@href'
         companies = [href.split('/')[-1] for href in page.xpath(xp)]
-        for unit_id, unit in self.units(class_name='Склад').items():
-            if (not unit_ids and unit['name'][:1] == '%' or unit_id in unit_ids):
+        for unit_id, unit in self.units(unit_type_name='Склад').items():
+            if (unit_ids and unit_id in unit_ids 
+                    or not unit_ids and unit['name'][:1] == '%'):
                 print(unit['name'])
                 products = {}
-                for contract in self.sale_contracts(unit_id)['data']:
+                for contract in self.sale_contracts(unit_id):
                     products[contract['product_id']] = contract['offer_price']
                 data = {product: {'price': price, 
                                   'constraint': 2, 
@@ -1085,9 +1086,10 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    v.party_sales()
     #v.set_shops_default_prices()
     #v.propagate_contracts()
-    v.manage_shops()
+    #v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations()
     #v.distribute_shop_employees()
