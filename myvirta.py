@@ -877,7 +877,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.02  # 0.01 максимальных шаг изменения цены
-        elasticity = min(20, 9 + TODAY.day) if TODAY.month==4 else 20  # 20
+        elasticity = min(20, 9 + TODAY.day) if TODAY.month==4 else 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         
         shops = self.units(name='*****')
@@ -890,7 +890,10 @@ class MyVirta(Virta):
         print('Reading shops info')
         # Считываем инфу из всех торговых залов (из БД, если уже считывали)
         trading_halls = {shop_id: self.trading_hall(shop_id, cache=True) for shop_id in shops}
-        
+        # Считаем, сколько товаров суммарно отгружать
+        # Если на складе слишком много товара, отгружаем среднее 
+        # между имеющимся количеством и вчерашний отгрузкой
+        # чтобы амортизировать колебания
         for product_id, product in products.items():
             purchase = sum(trading_hall[product_id]['purchase'] for trading_hall in trading_halls.values())
             if product['quantity_at_supplier_storage'] > purchase > 0:
@@ -898,6 +901,8 @@ class MyVirta(Virta):
             else:
                 products[product_id]['quantity_to_distribute'] = product['quantity_at_supplier_storage']
         
+        # считаем долю магазинов, в которых сбыли весь товар
+        # чем выше данное отношение, тем больше поднимаем цену ниже
         clearance_count = {product_id: [] for product_id in products}
         for shop_id in shops:
             for product_id, trade in trading_halls[shop_id].items():
@@ -973,10 +978,13 @@ class MyVirta(Virta):
                 target[shop_id] = (max(1, target_sale),
                                    max(1, min_market_share * market_size),
                                    max(1, max_market_share * market_size)
-                                   )
+                                   )  # цель, нижняя и верхняя граница
                 
             # Найденные объемы не обязательно суммируются в кол-во товара на складе
             # Поэтому распределяем весь имеющийся товар пропорционально
+            
+            # Методом деления отрезка пополам ищем множитель, для которого
+            # суммарное стабжение совпадает с требуемым
             def total(factor):
                 return sum(int(min(max(factor * t, mint), maxt)) 
                            for (t, mint, maxt) in target.values())
@@ -1073,6 +1081,7 @@ class MyVirta(Virta):
                 market_size = markets[product_id][shop['city_id']]
                 # оставляем двухдневный запас или максимальную долю рынка
                 if trade['sold'] > 0:
+                    # сглаживаем между днями
                     need = target_sales[product_id][shop_id] + trade['sold']
                 else:
                     need = 2 * target_sales[product_id][shop_id]
