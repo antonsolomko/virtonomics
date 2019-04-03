@@ -859,10 +859,10 @@ class MyVirta(Virta):
             self.set_shop_default_prices(shop_id)
     
     
-    def propagate_contracts(self, reference_shop=7559926):
+    def propagate_contracts(self, reference_shop_id=7559926):
         print('Copying contracts')
         shops = self.units(name='*****')
-        ref_contracts = self.supply_contracts(reference_shop)  # вытягиваем из ведущего магазина список контрактов
+        ref_contracts = self.supply_contracts(reference_shop_id)  # вытягиваем из ведущего магазина список контрактов
         for shop_id in shops:
             print(shop_id)
             contracts = self.supply_contracts(shop_id)
@@ -872,24 +872,30 @@ class MyVirta(Virta):
                     self.create_supply_contract(shop_id, offer_id, max_increase=0)
     
     
-    def manage_shops(self):
+    def manage_shops(self, reference_shop_id=7559926):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.02  # 0.01 максимальных шаг изменения цены
         elasticity = min(20, 9 + TODAY.day) if TODAY.month==4 else 20  # 20
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
-        ref_shop_id = 7559926  # ведущий магазин
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
         # Вытягиваем из ведущего магазина список товаров, которыми торгуем
         products = {p['product_id']: p 
-                    for p in self.supply_contracts(ref_shop_id).values()
+                    for p in self.supply_contracts(reference_shop_id).values()
                     if p['quantity_at_supplier_storage']}
         
         print('Reading shops info')
         # Считываем инфу из всех торговых залов (из БД, если уже считывали)
         trading_halls = {shop_id: self.trading_hall(shop_id, cache=True) for shop_id in shops}
+        
+        for product_id, product in products.items():
+            purchase = sum(trading_hall[product_id]['purchase'] for trading_hall in trading_halls.values())
+            if product['quantity_at_supplier_storage'] > purchase > 0:
+                products[product_id]['quantity_to_distribute'] = (purchase + product['quantity_at_supplier_storage']) / 2
+            else:
+                products[product_id]['quantity_to_distribute'] = product['quantity_at_supplier_storage']
         
         clearance_count = {product_id: [] for product_id in products}
         for shop_id in shops:
@@ -954,13 +960,13 @@ class MyVirta(Virta):
                         # Если распродали весь товар, увеличить долю на 1%
                         target_sale *= 1.01
                     elif mean_price:
-                        # Если имеем точное значение спроса, корректируем пропорционально
-                        # отклонению цены от средней
+                        # Если имеем точное значение спроса, корректируем 
+                        # пропорционально отклонению цены от средней
                         target_sale *= sigmoid(trade['price'] / mean_price, 
                                                adjustment_rate, max_adjustment)
                 else:
                     # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
-                    target_sale = (product['quantity_at_supplier_storage'] 
+                    target_sale = (product['quantity_to_distribute'] 
                                    * market_size
                                    / markets[product_id]['total_market_size'])
                 target[shop_id] = (max(1, target_sale),
@@ -977,13 +983,13 @@ class MyVirta(Virta):
             target_sales[product_id] = {}
             factor0 = 0
             factor1 = max(maxt / t for (t, mint, maxt) in target.values())
-            if total(factor0) >= product['quantity_at_supplier_storage']:
+            if total(factor0) >= product['quantity_to_distribute']:
                 total_min = total(factor0)
                 for shop_id in shops:
                     t, mint, maxt = target[shop_id]
-                    target_sale = mint * product['quantity_at_supplier_storage'] / total_min
+                    target_sale = mint * product['quantity_to_distribute'] / total_min
                     target_sales[product_id][shop_id] = int(target_sale)
-            elif total(factor1) <= product['quantity_at_supplier_storage']:
+            elif total(factor1) <= product['quantity_to_distribute']:
                 for shop_id in shops:
                     t, mint, maxt = target[shop_id]
                     target_sales[product_id][shop_id] = int(maxt)
@@ -994,14 +1000,14 @@ class MyVirta(Virta):
                     factor = (factor0 + factor1) / 2
                     if factor == factor0 or factor == factor1:
                         break
-                    if total(factor) < product['quantity_at_supplier_storage']:
+                    if total(factor) < product['quantity_to_distribute']:
                         factor0 = factor
                         total_sales0 = total(factor0)
                     else:
                         factor1 = factor
                         total_sales1 = total(factor1)
-                error0 = abs(total(factor0) - product['quantity_at_supplier_storage'])
-                error1 = abs(total(factor1) - product['quantity_at_supplier_storage'])
+                error0 = abs(total(factor0) - product['quantity_to_distribute'])
+                error1 = abs(total(factor1) - product['quantity_to_distribute'])
                 factor = factor0 if error0 <= error1 else factor1
                 for shop_id, shop in shops.items():
                     t, mint, maxt = target[shop_id]
@@ -1065,14 +1071,17 @@ class MyVirta(Virta):
                     continue
                 market_size = markets[product_id][shop['city_id']]
                 # оставляем двухдневный запас или максимальную долю рынка
-                need = min(2 * max(target_sales[product_id][shop_id], trade['sold']), 
-                           max_market_share * market_size)
+                if trade['sold'] > 0:
+                    need = target_sales[product_id][shop_id] + trade['sold']
+                else:
+                    need = 2 * target_sales[product_id][shop_id]
+                need = min(need, max_market_share * market_size)
                 # лишнее вывозим
                 if trade['current_stock'] > need:
                     self.product_move_to_warehouse(
                         shop_id, product_id, products[product_id]['supplier_id'], 
                         trade['current_stock'] - need)
-                    
+    
     
 if __name__ == '__main__':
     v = MyVirta('olga')
