@@ -828,8 +828,11 @@ class MyVirta(Virta):
                                    competence=175, innovation=True)
     
     
-    def set_shops_innovations(self):
+    def set_shops_innovations(self, refresh=False):
         for shop_id in self.units(name='*****'):
+            if refresh:
+                self.set_innovation(shop_id, 'shop_advertisement', action='remove')
+                self.set_innovation(shop_id, 'shop_retail', action='remove')
             self.set_innovation(shop_id, 'shop_advertisement')
             self.set_innovation(shop_id, 'shop_retail')
     
@@ -1095,12 +1098,12 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.party_sales()
+    #v.party_sales()
     #v.set_shops_default_prices()
     #v.propagate_contracts()
-    #v.manage_shops()
+    v.manage_shops()
     #v.set_shops_advertisement()
-    #v.set_shops_innovations()
+    #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()

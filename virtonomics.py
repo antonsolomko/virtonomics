@@ -2374,8 +2374,11 @@ class Virta:
         factor = total_number / total_required
         for unit_id, required_number in employee_required.items():
             employee_number = int(factor * required_number)
-            employee_level = 1 + math.log(
-                base * competence**2 * min(1.2, 1/load)**2 / employee_number, 1.4)
+            if employee_number > 0:
+                employee_level = 1 + math.log(
+                    base * competence**2 * min(1.2, 1/load)**2 / employee_number, 1.4)
+            else:
+                employee_level = 0
             employee_level = int(100 * employee_level) / 100
             print(unit_id, employee_number, employee_level)
             self.set_employees(unit_id, quantity=employee_number, salary_max=50000,
