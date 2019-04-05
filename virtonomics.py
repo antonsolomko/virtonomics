@@ -2364,7 +2364,7 @@ class Virta:
             else:
                 return
         total_number -= reserve
-        units = {unit_id: self.unit_summary(unit_id) for unit_id in units}
+        units = {unit_id: self.unit_summary(unit_id, refresh=True) for unit_id in units}
         employee_required = {unit_id: unit['employee_required']
                              for unit_id, unit in units.items()
                              if not unit.get('on_holiday', True)}
