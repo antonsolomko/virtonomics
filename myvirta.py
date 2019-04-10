@@ -8,7 +8,7 @@ import random
 
 
 def sigmoid(x, slope=1, bound=1):
-    return  1 + bound * (2 / (1 + math.exp(-2 * slope * (x-1) / bound)) - 1) if bound>0 else 0
+    return  1 + bound * (2 / (1 + math.exp(-2*slope*(x-1)/bound)) - 1) if bound>0 else 1
 
 
 def delay(func):
@@ -880,7 +880,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_adjustment = 0.02  # 0.01 максимальных шаг изменения цены
-        elasticity = min(20, 9 + TODAY.day) if TODAY.month==4 else 20  # эластичность спроса
+        elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         
         shops = self.units(name='*****')
@@ -905,7 +905,7 @@ class MyVirta(Virta):
                 products[product_id]['quantity_to_distribute'] = product['quantity_at_supplier_storage']
         
         # считаем долю магазинов, в которых сбыли весь товар
-        # чем выше данное отношение, тем больше поднимаем цену ниже
+        # чем выше данное отношение, тем больше поднимаем цену
         clearance_count = {product_id: [] for product_id in products}
         for shop_id in shops:
             for product_id, trade in trading_halls[shop_id].items():
@@ -1063,9 +1063,9 @@ class MyVirta(Virta):
                         if trade['stock'] == trade['purchase']:
                             # если продан весь товар, повышаем цену
                             new_price *= 1 + max_adjustment * (1 + 4 * clearance_rate[product_id])
-                        elif trade['stock'] > 0:
+                        elif trade['current_stock'] > 0:
                             # иначе, корректируем под требуемый объем продаж
-                            target = min(target_sales[product_id][shop_id], trade['stock'])
+                            target = min(target_sales[product_id][shop_id], trade['current_stock'])
                             new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
@@ -1101,10 +1101,10 @@ if __name__ == '__main__':
     #v.party_sales()
     #v.set_shops_default_prices()
     #v.propagate_contracts()
-    #v.manage_shops()
+    v.manage_shops()
     #v.set_shops_advertisement()
     #v.set_shops_innovations(refresh=True)
-    v.distribute_shop_employees()
+    #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
     #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
