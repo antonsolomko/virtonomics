@@ -822,10 +822,9 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=700000):
+    def set_shops_advertisement(self, target_customers=660000):
         for shop_id in self.units(name='*****'):
-            self.set_advertisement(shop_id, target_customers=target_customers, 
-                                   competence=175, innovation=True)
+            self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
     
     def set_shops_innovations(self, refresh=False):
@@ -840,7 +839,7 @@ class MyVirta(Virta):
     def distribute_shop_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        return super().distribute_shop_employees(units, competence=157, reserve=100)
+        return super().distribute_shop_employees(units, reserve=100)
     
     
     def set_shop_default_prices(self, shop_id, factor=2):
@@ -1100,9 +1099,9 @@ if __name__ == '__main__':
     v = MyVirta('olga')
     #v.party_sales()
     #v.set_shops_default_prices()
+    v.set_shops_advertisement()
     #v.propagate_contracts()
-    v.manage_shops()
-    #v.set_shops_advertisement()
+    #v.manage_shops()
     #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()

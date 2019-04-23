@@ -438,6 +438,19 @@ class Virta:
                 res['days_to_election'] = (election_date - TODAY).days - 1
                 self.elections[election_id] = res
             return self.elections
+        
+        elif attrname in ['qualification', 'knowledge']:
+            url = self.domain_ext + 'user/view/%s' % self.company['president_user_id']
+            page = self.session.tree(url)
+            xp = '//tr/td[1]/img[contains(@src, "/qualification/")]/../..'
+            rows = page.xpath(xp)
+            res = {}
+            for row in rows:
+                name = row.xpath('./td[1]/img/@src')[0].split('/')[-1].split('.')[0]
+                qual = int(row.xpath('./td[last()]/b/text()')[0])
+                res[name] = qual
+            setattr(self, attrname, res)
+            return getattr(self, attrname)
             
         raise AttributeError(attrname)
     
@@ -2333,7 +2346,9 @@ class Virta:
                     cost = ratio * estimate['contactCost'] * city['population']
                     if cost >= estimate['minCost']:
                         break
-        if competence and not max_cost:
+        if not competence:
+            competence = self.knowledge['advert']
+        if not max_cost:
             max_cost = 200000 * competence**1.4
         if max_cost and cost > max_cost:
             cost = max_cost
@@ -2359,10 +2374,9 @@ class Virta:
         base = 10
         load = 1.2
         if not total_number:
-            if competence:
-                total_number = load * base * competence * (competence + 3)
-            else:
-                return
+            if not competence:
+                competence = self.knowledge['trade']
+            total_number = load * base * competence * (competence + 3)
         total_number -= reserve
         units = {unit_id: self.unit_summary(unit_id, refresh=True) for unit_id in units}
         employee_required = {unit_id: unit['employee_required']
