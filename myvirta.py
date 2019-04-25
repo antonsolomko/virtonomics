@@ -955,6 +955,7 @@ class MyVirta(Virta):
             else:
                 mean_price = None
                 adjustment_rate = max_adjustment  # наклон сигмоиды
+            #print(adjustment_rate)
             
             # Считаем, сколько товара хотим сбывать в каждом магазине
             target = {}
@@ -964,10 +965,7 @@ class MyVirta(Virta):
                 if trade['sold']:
                     # Отталкиваемся от продаж, если таковые были
                     target_sale = trade['sold']
-                    if trade['stock'] == trade['purchase']:
-                        # Если распродали весь товар, увеличить долю на 1%
-                        target_sale *= 1.01
-                    elif mean_price:
+                    if trade['stock'] > trade['purchase'] and mean_price:
                         # Если имеем точное значение спроса, корректируем 
                         # пропорционально отклонению цены от средней
                         target_sale *= sigmoid(trade['price'] / mean_price, 
@@ -1058,14 +1056,13 @@ class MyVirta(Virta):
                     new_price = trade['price']  # возвращаем старую цену
                 elif trade['price'] > 0:
                     new_price = trade['price']
-                    if trade['sold'] > 0:
-                        if trade['stock'] == trade['purchase']:
-                            # если продан весь товар, повышаем цену
-                            new_price *= 1 + max_adjustment * (1 + 4 * clearance_rate[product_id])
-                        elif trade['current_stock'] > 0:
-                            # иначе, корректируем под требуемый объем продаж
-                            target = min(target_sales[product_id][shop_id], trade['current_stock'])
-                            new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_adjustment)
+                    if trade['stock'] == trade['purchase']:
+                        # если продан весь товар, повышаем цену
+                        new_price *= 1 + max_adjustment * (1 + 4 * clearance_rate[product_id])
+                    elif trade['current_stock'] > 0:
+                        # иначе, корректируем под требуемый объем продаж
+                        target = min(target_sales[product_id][shop_id], trade['current_stock'])
+                        new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
                         new_price = trading_hall_sales[product_id]['price']
@@ -1099,9 +1096,9 @@ if __name__ == '__main__':
     v = MyVirta('olga')
     #v.party_sales()
     #v.set_shops_default_prices()
-    v.set_shops_advertisement()
+    #v.set_shops_advertisement()
     #v.propagate_contracts()
-    #v.manage_shops()
+    v.manage_shops()
     #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()
