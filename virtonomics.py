@@ -230,7 +230,8 @@ class Virta:
         server (str): Server name.
         server_date (datetime.date): Current virtual server date.
         session (requests.Session): Requests session. Opens automatically.
-        state_kinds (tuple): state enterprises kinds
+        state_kinds (tuple): State enterprises kinds.
+        tenders (Dict): List of tenders.
         unittypes (Dict): List of unit types.
         units (Dict): List of company units.
         user (str): Username (login).
@@ -815,8 +816,27 @@ class Virta:
             self.conn.commit()
             
         return Dict(result)
-        
     
+    
+    def service_history(self, unit_id):
+        url = self.domain_ext + 'unit/view/%s/service_history' % unit_id
+        page = self.session.tree(url)
+        xp = '//*[@id="mainContent"]//tr'
+        result = []
+        for row in page.xpath(xp)[1:]:
+            price = row.xpath('./td[2]//text()')
+            if price:
+                price = float(price[0].replace(' ', '').replace('$', ''))
+            else:
+                price = None
+            sold = row.xpath('./td[3]/text()')
+            if sold:
+                sold = int(sold[0].replace(' ', ''))
+            else:
+                sold = 0
+            result.append({'price': price, 'sold': sold})
+        return result
+            
     
     # General purpose unit management methods
     
@@ -2421,8 +2441,18 @@ class Virta:
         data['action'] = 'terminate'
         return self.session.post(url, data=data)
     
+    
+    @staticmethod
+    def supply_contracts_to_orders(contracts, **kwargs):
+        keys = {'quantity': 'dispatch_quantity',
+                'max_price': 'price_constraint_max',
+                'max_increase': 'price_constraint',
+                'min_quality': 'quality_constraint_min'
+                }
+        return {contract_id: {key: kwargs.get(key, contract[keys[key]]) for key in keys}
+                for contract_id, contract in contracts.items()}
+    
 
 if __name__ == '__main__':
     v = Virta('olga')
-    
             

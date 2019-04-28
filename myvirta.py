@@ -822,7 +822,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=660000):
+    def set_shops_advertisement(self, target_customers=690000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
@@ -1092,13 +1092,71 @@ class MyVirta(Virta):
                         trade['current_stock'] - need)
     
     
+    def manage_restaurants(self, days=3):
+        def calculate_new_price(history, max_visitors, min_price=0):
+            if not history:
+                return None
+            current_price = history[0]['price']
+            current_sold = history[0]['sold']
+            if None in [current_price, current_sold]:
+                return None
+            almost_max_visitors = 0.96 * max_visitors
+            if current_sold < almost_max_visitors:
+                equivalent_price = current_price * current_sold / max_visitors
+                new_price = (current_price + equivalent_price) / 2
+            else:
+                consecutive_days_with_max = 0
+                for week in history:
+                    if week['sold'] >= almost_max_visitors:
+                        consecutive_days_with_max += 1
+                    else:
+                        break
+                new_price = current_price * (1 + consecutive_days_with_max / 100)
+            if new_price < 0.95 * current_price:
+                new_price = 0.95 * current_price
+            if new_price < min_price:
+                new_price = min_price
+            return round(new_price)
+        
+        min_price = {
+            'restaurant': 7200,
+            'educational': 100000,
+            'repair': 1000
+            }
+        
+        for unit_id in self.units(unit_class_kind=['restaurant', 'educational', 'repair']):
+            print(unit_id)
+            unit = self.unit_summary(unit_id)
+            new_price = calculate_new_price(self.service_history(unit_id), unit['customers'],
+                                            min_price[unit['unit_class_kind']])
+            if new_price:
+                self.set_service_price(unit_id, new_price)
+            
+            contracts = self.supply_contracts(unit_id)
+            orders = self.supply_contracts_to_orders(contracts)
+            for product_id, product in self.supply_products(unit_id).items():
+                per_day = product['per_client'] * unit['customers']
+                fund = max(0, product['stock'] - per_day)
+                to_order = max(0, days * per_day - fund)
+                if to_order > 1.05 * per_day:
+                    to_order = round(1.05 * per_day)
+                for contract_id, contract in contracts(product_id=product_id).items():
+                    available = contract['free_for_buy']
+                    if contract['offer_max_qty'] and contract['offer_max_qty'] < available:
+                        available = contract['offer_max_qty']
+                    orders[contract_id]['quantity'] = min(to_order, available)
+                    to_order -= orders[contract_id]['quantity']
+            self.set_supply_contracts(unit_id, orders)
+    
+    
 if __name__ == '__main__':
     v = MyVirta('olga')
+    #v.manage_restaurants()
     #v.party_sales()
     #v.set_shops_default_prices()
     #v.set_shops_advertisement()
     #v.propagate_contracts()
-    v.manage_shops()
+    #v.manage_shops()
     #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()
