@@ -822,7 +822,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=690000):
+    def set_shops_advertisement(self, target_customers=700000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
@@ -1154,7 +1154,7 @@ if __name__ == '__main__':
     #v.manage_restaurants()
     #v.party_sales()
     #v.set_shops_default_prices()
-    #v.set_shops_advertisement()
+    v.set_shops_advertisement()
     #v.propagate_contracts()
     #v.manage_shops()
     #v.set_shops_innovations(refresh=True)
