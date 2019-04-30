@@ -42,6 +42,14 @@ class MyVirta(Virta):
         self.session.post = delay(self.session.post)
     
     
+    def __getattr__(self, attrname):
+        if attrname == 'retail_target_volumes':
+            self.retail_target_volumes = self._get_retail_terget_volumes()
+            return self.retail_target_volumes
+        
+        return super().__getattr__(attrname)
+    
+    
     def set_innovation(self, unit_id, innovation_name, **kwargs):
         alternative_names = {
             'agitation': 'Политическая агитация',
@@ -873,6 +881,22 @@ class MyVirta(Virta):
                 if offer_id not in contracts:
                     print('+', offer_id)
                     self.create_supply_contract(shop_id, offer_id, max_increase=0)
+    
+    
+    def _get_retail_terget_volumes(self):
+        units = {unit_id: unit 
+                 for unit_id, unit in self.units(unit_class_kind='warehouse').items()
+                 if unit['name'][:1] == '!'}
+        result = {}
+        for unit_id in units:
+            url = self.domain_ext + 'unit/view/%s' % unit_id
+            page = self.session.tree(url)
+            xp = '//tr//img[contains(@src, "/img/products/")]/../..'
+            for row in page.xpath(xp):
+                name = str(row.xpath('./td[1]/text()')[0])
+                purchase = int(row.xpath('./td[8]/text()')[0].replace(' ', ''))
+                result[name] = purchase
+        return result
     
     
     def manage_shops(self, reference_shop_id=7559926):
