@@ -902,6 +902,7 @@ class MyVirta(Virta):
     def manage_shops(self, reference_shop_id=7559926):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
+        max_market_share_stock = 0.5  # максимальный запас относительно рынка
         max_adjustment = 0.02  # 0.01 максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
@@ -1102,13 +1103,14 @@ class MyVirta(Virta):
                 if product_id not in products:
                     continue
                 market_size = markets[product_id][shop['city_id']]
-                # оставляем двухдневный запас или максимальную долю рынка
+                # оставляем двухдневный запас или максимальную долю рынка 
+                #(немного больше максимальной доли рынка, чтобы избежать частых опустошений)
                 if trade['sold'] > 0:
                     # сглаживаем между днями
                     need = target_sales[product_id][shop_id] + trade['sold']
                 else:
                     need = 2 * target_sales[product_id][shop_id]
-                need = min(need, max_market_share * market_size)
+                need = min(need, max_market_share_stock * market_size)
                 # лишнее вывозим
                 if trade['current_stock'] > need:
                     self.product_move_to_warehouse(
