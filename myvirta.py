@@ -830,7 +830,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=700000):
+    def set_shops_advertisement(self, target_customers=710000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
@@ -903,7 +903,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_market_share_stock = 0.5  # максимальный запас относительно рынка
-        max_adjustment = 0.02  # 0.01 максимальных шаг изменения цены
+        max_adjustment = 0.015  # 0.01 максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         
