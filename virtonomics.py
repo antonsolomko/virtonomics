@@ -1622,6 +1622,92 @@ class Virta:
         return self.session.post(url)
     
     
+    def create_unit(self, *args, **kwargs):
+        """
+        unit_class
+        unit_type
+        country
+        region
+        city
+        district
+        produce
+        produce_bound
+        techno_level
+        custom_name
+        """
+        
+        def get_options(page):
+            result = {}
+            name = None
+            rows = page.xpath('//input[@type="radio"]')
+            if rows:
+                for row in rows:
+                    if not name:
+                        name = str(row.xpath('./@name')[0]).split('[')[-1].split(']')[0]
+                    value = int(row.xpath('./@value')[0])
+                    if name == 'unit_type':
+                        text = row.xpath('./../label/text()[last()]')
+                    else:
+                        text = row.xpath('./../../td[2]/text()[last()]')
+                        if not text:
+                            text = row.xpath('./../../td[3]/text()[last()]')
+                    text = str(text[0]).strip()
+                    result[value] = text
+                return name, result
+            else:
+                name = 'custom_name'
+                value = page.xpath('//input[@type="text"]/@value')[0]
+                return name, value
+        
+        if 'city' in kwargs and 'region' not in kwargs or 'country' not in kwargs:
+            city = self.cities.select(id=kwargs['city'])
+            if not city:
+                city = self.cities.select(city_name=kwargs['city'])
+            if city:
+                kwargs['region'] = city['region_id']
+                kwargs['country'] = city['country_id']
+            else:
+                print('Error: nonexistent city passed')
+                return
+            
+        if 'name' in kwargs and 'custom_name' not in kwargs:
+            kwargs['custom_name'] = kwargs['name']
+            
+        arg_iter = iter(args)
+        url = self.domain_ext + 'unit/create/%s' % self.company['id']
+        name = None
+        print('\nCreating unit')
+        while 'unit/create/' in url:
+            name, options = get_options(self.session.tree(url))
+            print(name, end=': ')
+            if name in kwargs:
+                choice = kwargs[name]
+            else:
+                try:
+                    choice = next(arg_iter)
+                except StopIteration:
+                    if name == 'custom_name':
+                        choice = options
+                    else:
+                        print('Error: not enough arguments passed')
+                        return
+            if name != 'custom_name' and choice not in options:
+                choice = [k for k, v in options.items() if v == choice]
+                if choice:
+                    choice = choice[0]
+                else:
+                    print('Error: cannot find a proper option')
+                    return
+            print(choice if name=='custom_name' else options[choice])
+            data = {
+                'unitCreateData[%s]' % name: choice,
+                'next': 1 
+                }
+            url = self.session.post(url, data=data).url
+        print('Unit created')
+        return True
+    
+    
     def sale_unit(self, unit_id, price=None, factor=1):
         url = self.domain_ext + 'unit/market/sale/%s' % unit_id
         if not price:
@@ -2455,4 +2541,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-            

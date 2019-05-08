@@ -1120,7 +1120,7 @@ class MyVirta(Virta):
     
     def manage_restaurants(self, days=3):
         def calculate_new_price(history, max_visitors, min_price=0):
-            if not history:
+            if not history or not max_visitors:
                 return None
             current_price = history[0]['price']
             current_sold = history[0]['sold']
@@ -1190,4 +1190,3 @@ if __name__ == '__main__':
     #v.distribute_shop_employees()
     #v.read_messages()
     #v.manage_research()
-    #trading_hall, supply_products, supply_contracts, offers, orders, to_order = v.manage_shop(7355541)
