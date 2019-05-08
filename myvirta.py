@@ -501,7 +501,8 @@ class MyVirta(Virta):
             elif level <= 19: num = 5  # 300
             elif level <= 25: num = 4  # 700
             elif level <= 27: num = 3  # 850
-            else: num = 2  # 1000
+            elif level <= 30: num = 2  # 1000
+            else: num = 1  # 1000
             for unittype_id in unittypes:
                 # Choose free laboratory satisfying minimal requirements
                 print('+', self.unittypes[unittype_id]['name'], level, 
