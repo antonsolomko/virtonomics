@@ -904,7 +904,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_market_share_stock = 0.5  # максимальный запас относительно рынка
-        max_sales_adjustment = 0.02  # максимальных шаг изменения продаж
+        max_sales_adjustment = 0.1  # максимальных шаг изменения продаж
         max_price_adjustment = 0.01  # максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
@@ -1086,7 +1086,7 @@ class MyVirta(Virta):
                     new_price = trade['price']
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
-                        new_price *= 1 + max_price_adjustment * (1 + 9 * clearance_rate[product_id]**2)
+                        new_price *= 1 + max_price_adjustment * (0.5 + 9.5 * clearance_rate[product_id]**2)
                     elif trade['current_stock'] > 0:
                         # иначе, корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
@@ -1188,7 +1188,7 @@ if __name__ == '__main__':
     #v.set_shops_default_prices()
     #v.set_shops_advertisement()
     #v.propagate_contracts()
-    v.manage_shops()
+    #v.manage_shops()
     #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()
