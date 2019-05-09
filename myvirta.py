@@ -10,6 +10,9 @@ import random
 def sigmoid(x, slope=1, bound=1):
     return  1 + bound * (2 / (1 + math.exp(-2*slope*(x-1)/bound)) - 1) if bound>0 else 1
 
+def log(x, default=0, *args, **kwargs):
+    return math.log(x, *args, **kwargs) if x > 0 else default
+
 
 def delay(func):
     def wrapper(*args, **kwargs):
@@ -901,7 +904,8 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_market_share_stock = 0.5  # максимальный запас относительно рынка
-        max_adjustment = 0.01  # 0.01 максимальных шаг изменения цены
+        max_sales_adjustment = 0.02  # максимальных шаг изменения продаж
+        max_price_adjustment = 0.01  # максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         
@@ -971,14 +975,14 @@ class MyVirta(Virta):
                                  for shop_id in shops) / total_sold
                 log_mean_price = math.log(mean_price)
                 # стандартное отклоние цены от средней
-                std_dev = (sum((math.log(trading_halls[shop_id][product_id]['price']) - log_mean_price) ** 2
+                std_dev = (sum((log(trading_halls[shop_id][product_id]['price'], log_mean_price) - log_mean_price) ** 2
                                * trading_halls[shop_id][product_id]['sold']
                                for shop_id in shops) / total_sold) ** 0.5
                 # наклон сигмоиды
-                adjustment_rate =  max_adjustment / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
+                adjustment_rate =  max_sales_adjustment / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
             else:
                 mean_price = None
-                adjustment_rate = max_adjustment  # наклон сигмоиды
+                adjustment_rate = max_sales_adjustment  # наклон сигмоиды
             #print(adjustment_rate)
             
             # Считаем, сколько товара хотим сбывать в каждом магазине
@@ -992,8 +996,8 @@ class MyVirta(Virta):
                     if trade['stock'] > trade['purchase'] and mean_price:
                         # Если имеем точное значение спроса, корректируем 
                         # пропорционально отклонению цены от средней
-                        target_sale *= sigmoid(math.log(trade['price']) - log_mean_price + 1, 
-                                               adjustment_rate, max_adjustment)
+                        target_sale *= sigmoid(log(trade['price'], log_mean_price) - log_mean_price + 1, 
+                                               adjustment_rate, max_sales_adjustment)
                 else:
                     # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
                     target_sale = (product['quantity_to_distribute'] 
@@ -1082,11 +1086,11 @@ class MyVirta(Virta):
                     new_price = trade['price']
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
-                        new_price *= 1 + max_adjustment * (1 + 9 * clearance_rate[product_id]**2)
+                        new_price *= 1 + max_price_adjustment * (1 + 9 * clearance_rate[product_id]**2)
                     elif trade['current_stock'] > 0:
                         # иначе, корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
-                        new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_adjustment)
+                        new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_price_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
                         new_price = trading_hall_sales[product_id]['price']
