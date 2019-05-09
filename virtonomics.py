@@ -1544,13 +1544,14 @@ class Virta:
         return self.session.post(url, data=data)
     
     
-    def set_innovation(self, unit_id, innovation_name, action='attach'):
+    def set_innovation(self, unit_id, innovation_name, action='attach', refresh=False):
         """Attach or detach an innovation for a given unit.
         
         Arguments:
             unit_id (int): Unit id.
             innovation_name (str): Innovation name.
             action: 'attach' or 'remove'. Defaults to 'attach'.
+            refresh: if True, the innovation will be removed first.
         
         Returns:
             POST request responce.
@@ -1560,6 +1561,9 @@ class Virta:
             for unit in v.units(unit_class_kind='villa').values():
                 v.set_innovation(unit['id'], 'Политическая агитация')
         """
+        
+        if action == 'attach' and refresh:
+            self.set_innovation(unit_id, innovation_name, action='remove')
         
         artefacts = {
             # Villa
@@ -1623,17 +1627,32 @@ class Virta:
     
     
     def create_unit(self, *args, **kwargs):
-        """
-        unit_class
-        unit_type
-        country
-        region
-        city
-        district
-        produce
-        produce_bound
-        techno_level
-        custom_name
+        """Create unit.
+        
+        Order of positional arguments should correspond to order in which they
+        appear during the unit creation dialog.
+        If named argument city is passed, country and region may be skipped.
+        
+        Arguments:
+            unit_class: класс подразделения
+            unit_type: тип подразделения
+            country: страна
+            region: регион
+            city: город
+            district: район
+            warehouse_product_category: тип хранимой продукции
+            produce: специализация
+            produce_bound: размер
+            techno_level: технология
+            custom_name: имя
+            name: 
+            
+        Returns:
+            True if unit was created, None otherwise
+            
+        Example:
+            v.create_unit('Ресторан', 'Окраина', 'Кофейня', '500 кв. м', 
+                          name='Caffè Roma', city='Рим')
         """
         
         def get_options(page):

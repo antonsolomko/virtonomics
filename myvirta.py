@@ -406,7 +406,7 @@ class MyVirta(Virta):
                 time_left = lab['project']['current_step_time_left']
                 if stage == 1 and time_left < 3:
                     print(lab_id, self.unittypes[unittype_id]['name'], '1..2')
-                    self.set_innovation(lab_id, 'lab2')
+                    self.set_innovation(lab_id, 'lab2', refresh=True)
                 elif stage == 3 and time_left < 2:
                     self.rename_unit(lab_id, '-'+self.unittypes[unittype_id]['name'])
                 
@@ -439,7 +439,7 @@ class MyVirta(Virta):
                     if stage == 2.5:
                         # Set experimental unit
                         lab = labs[lab_id]
-                        self.set_innovation(lab_id, 'lab3')
+                        self.set_innovation(lab_id, 'lab3', refresh=True)
                         print(lab['id'], self.unittypes[unittype_id]['name'], 
                               '%s.3' % level)
                         min_size = lab['project'][
@@ -524,7 +524,7 @@ class MyVirta(Virta):
                                            trigger=2)
                         self.rename_unit(lab_id, 
                                          self.unittypes[unittype_id]['name'])
-                        self.set_innovation(lab_id, 'lab1')
+                        self.set_innovation(lab_id, 'lab1', refresh=True)
                         free_labs0.remove(lab_id)
                         free_labs.remove(lab_id)
                         print(' ->', lab_id,
@@ -831,18 +831,15 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=710000):
+    def set_shops_advertisement(self, target_customers=730000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
     
     def set_shops_innovations(self, refresh=False):
         for shop_id in self.units(name='*****'):
-            if refresh:
-                self.set_innovation(shop_id, 'shop_advertisement', action='remove')
-                self.set_innovation(shop_id, 'shop_retail', action='remove')
-            self.set_innovation(shop_id, 'shop_advertisement')
-            self.set_innovation(shop_id, 'shop_retail')
+            self.set_innovation(shop_id, 'shop_advertisement', refresh=refresh)
+            self.set_innovation(shop_id, 'shop_retail', refresh=refresh)
     
     
     def distribute_shop_employees(self):
@@ -904,7 +901,7 @@ class MyVirta(Virta):
         min_market_share = 0.01  # минимальная доля рынка
         max_market_share = 0.4  # максимальная доля рынка
         max_market_share_stock = 0.5  # максимальный запас относительно рынка
-        max_adjustment = 0.015  # 0.01 максимальных шаг изменения цены
+        max_adjustment = 0.01  # 0.01 максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
         
@@ -972,12 +969,13 @@ class MyVirta(Virta):
                 mean_price = sum(trading_halls[shop_id][product_id]['price']
                                  * trading_halls[shop_id][product_id]['sold']
                                  for shop_id in shops) / total_sold
+                log_mean_price = math.log(mean_price)
                 # стандартное отклоние цены от средней
-                std_dev = (sum((trading_halls[shop_id][product_id]['price'] - mean_price) ** 2
+                std_dev = (sum((math.log(trading_halls[shop_id][product_id]['price']) - log_mean_price) ** 2
                                * trading_halls[shop_id][product_id]['sold']
                                for shop_id in shops) / total_sold) ** 0.5
                 # наклон сигмоиды
-                adjustment_rate =  max_adjustment * mean_price / std_dev
+                adjustment_rate =  max_adjustment / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
             else:
                 mean_price = None
                 adjustment_rate = max_adjustment  # наклон сигмоиды
@@ -994,7 +992,7 @@ class MyVirta(Virta):
                     if trade['stock'] > trade['purchase'] and mean_price:
                         # Если имеем точное значение спроса, корректируем 
                         # пропорционально отклонению цены от средней
-                        target_sale *= sigmoid(trade['price'] / mean_price, 
+                        target_sale *= sigmoid(math.log(trade['price']) - log_mean_price + 1, 
                                                adjustment_rate, max_adjustment)
                 else:
                     # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
@@ -1084,7 +1082,7 @@ class MyVirta(Virta):
                     new_price = trade['price']
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
-                        new_price *= 1 + max_adjustment * (1 + 4 * clearance_rate[product_id])
+                        new_price *= 1 + max_adjustment * (1 + 9 * clearance_rate[product_id]**2)
                     elif trade['current_stock'] > 0:
                         # иначе, корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
@@ -1186,7 +1184,7 @@ if __name__ == '__main__':
     #v.set_shops_default_prices()
     #v.set_shops_advertisement()
     #v.propagate_contracts()
-    #v.manage_shops()
+    v.manage_shops()
     #v.set_shops_innovations(refresh=True)
     #v.distribute_shop_employees()
     #v.read_messages()
