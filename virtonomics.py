@@ -18,8 +18,6 @@ from scipy.optimize import linprog
 import math
 
     
-TODAY = datetime.datetime.today().date()  # real date, no timezone correction
-
 # saves some space when parsing pages
 requests.Session.tree = lambda self, url: html.fromstring(self.get(url).content)
 
@@ -85,6 +83,7 @@ def str_to_date(date_str):
     month = months[month]
     year = int(year)
     return datetime.date(year, month, day)
+
 
 def date_to_str(date):
     months = ('', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -276,6 +275,7 @@ class Virta:
         'unittypes': 'unittype/browse',
         }
     state_kinds = ('farm', 'fishingbase', 'mine', 'orchard', 'sawmill', 'villa')
+    today = datetime.datetime.today().date()
     
     
     def __init__(self, server, **kwargs):
@@ -436,7 +436,7 @@ class Virta:
                 res['election_id'] = election_id
                 res['location_name'] = str(row.xpath('./td[2]/a/text()')[0])
                 election_date = str_to_date(row.xpath('./td[3]/text()')[0])
-                res['days_to_election'] = (election_date - TODAY).days - 1
+                res['days_to_election'] = (election_date - self.today).days - 1
                 self.elections[election_id] = res
             return self.elections
         
@@ -763,7 +763,7 @@ class Virta:
         if cache:
             # Try to extract data from db
             query_result = self.db.execute('SELECT * FROM retail WHERE unit_id=%d AND date="%s"'
-                                     % (shop_id, TODAY)).fetchall()
+                                     % (shop_id, self.today)).fetchall()
             result = {r['product_id']: r for r in query_result}
         if not result:
             url = self.domain_ext + 'unit/view/%s/trading_hall' % shop_id
@@ -805,7 +805,7 @@ class Virta:
                 res['avg_quality'] = float(res['avg_quality'])
                 res['avg_brand'] = float(res['avg_brand'])
                 res['unit_id'] = shop_id
-                res['date'] = TODAY
+                res['date'] = self.today
                 
                 result[res['product_id']] = res
                 
@@ -898,6 +898,23 @@ class Virta:
         data = {
             'unitData[name]': name,
             'unitData[international_name]': international_name
+            }
+        return self.session.post(url, data=data)
+    
+    
+    def get_unit_notice(self, unit_id):
+        url = self.domain_ext + 'unit/notice/%s' % unit_id
+        page = self.session.tree(url)
+        xp = '//textarea/text()'
+        text = str(page.xpath(xp)[0])
+        return text
+    
+    
+    def set_unit_notice(self, unit_id, text=''):
+        url = self.domain_ext + 'unit/notice/%s' % unit_id
+        data = {
+            'unitData[text]': text,
+            'save': 1
             }
         return self.session.post(url, data=data)
     
@@ -2063,7 +2080,7 @@ class Virta:
         """
         
         days_left = 156 - days_passed
-        election_date = TODAY + datetime.timedelta(days=days_left)
+        election_date = self.today + datetime.timedelta(days=days_left)
         shift = 1 if post=='mayor' else 0 if post=='governor' else 3
         extra_days = 6 - (election_date.weekday() - shift) % 7
         return days_left + extra_days
@@ -2560,3 +2577,4 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
+    t = v.set_unit_notice(7426290)
