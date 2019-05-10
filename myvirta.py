@@ -3,7 +3,6 @@
 """
 
 from virtonomics import *
-import math
 import random
 
 

@@ -2454,7 +2454,7 @@ class Virta:
                 if target_fame:
                     if target_fame > max_fame:
                         target_fame /= 100
-                    cf = v.unit_summary(unit_id)['fame']  # current fame
+                    cf = self.unit_summary(unit_id)['fame']  # current fame
                     ratio = (math.exp(target_fame) - math.exp(cf - cf**2 / 200)) / growth_rate
                 elif target_limit_fame:
                     if target_limit_fame > max_fame:
@@ -2577,4 +2577,3 @@ class Virta:
 
 if __name__ == '__main__':
     v = Virta('olga')
-    t = v.set_unit_notice(7426290)
