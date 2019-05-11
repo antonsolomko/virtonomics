@@ -2013,8 +2013,8 @@ class Virta:
         return expectation * reference_time
     
     
-    @staticmethod
-    def choose_hypothesis(hypotheses, labs_num=1):
+    @classmethod
+    def choose_hypothesis(cls, hypotheses, labs_num=1):
         """Choose a hypotesis with the shortest expected study time.
         
         Arguments:
@@ -2027,7 +2027,7 @@ class Virta:
                 study time is the smallest.
         """
         
-        expected_time = lambda h: Virta.hypothesis_stydy_expected_time(
+        expected_time = lambda h: cls.hypothesis_stydy_expected_time(
                                       h['success_probabilities'],
                                       reference_time=h['hypotesis_lengths'],
                                       labs_num=labs_num
@@ -2066,8 +2066,8 @@ class Virta:
     
     # Politics related methods
     
-    @staticmethod
-    def days_to_election(days_passed, post='mayor'):
+    @classmethod
+    def days_to_election(cls, days_passed, post='mayor'):
         """Days left to election.
         Takes into account day of the week when elections run.
         
@@ -2080,7 +2080,7 @@ class Virta:
         """
         
         days_left = 156 - days_passed
-        election_date = self.today + datetime.timedelta(days=days_left)
+        election_date = cls.today + datetime.timedelta(days=days_left)
         shift = 1 if post=='mayor' else 0 if post=='governor' else 3
         extra_days = 6 - (election_date.weekday() - shift) % 7
         return days_left + extra_days

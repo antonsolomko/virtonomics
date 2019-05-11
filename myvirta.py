@@ -3,7 +3,8 @@
 """
 
 from virtonomics import *
-import random
+import math, random, time
+#from virtonomics2 import Virtonomics as Virta
 
 
 def sigmoid(x, slope=1, bound=1):
@@ -833,7 +834,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     
     
-    def set_shops_advertisement(self, target_customers=730000):
+    def set_shops_advertisement(self, target_customers=750000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
