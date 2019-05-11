@@ -2,9 +2,9 @@
 @author: Anton Solomko
 """
 
-from virtonomics import *
+#from virtonomics import *
 import math, random, time
-#from virtonomics2 import Virtonomics as Virta
+from virtonomics2 import Virtonomics as Virta
 
 
 def sigmoid(x, slope=1, bound=1):
@@ -1086,7 +1086,7 @@ class MyVirta(Virta):
                     new_price = trade['price']
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
-                        new_price *= 1 + max_price_adjustment * (0.5 + 9.5 * clearance_rate[product_id]**2)
+                        new_price *= 1 + max_price_adjustment * (0.5 + 9.5 * clearance_rate[product_id]**1.5)
                     elif trade['current_stock'] > 0:
                         # иначе, корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
@@ -1187,6 +1187,7 @@ if __name__ == '__main__':
     #v.party_sales()
     #v.set_shops_default_prices()
     #v.set_shops_advertisement()
+    #v.manage_restaurants()
     #v.propagate_contracts()
     #v.manage_shops()
     #v.set_shops_innovations(refresh=True)
