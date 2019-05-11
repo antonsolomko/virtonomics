@@ -4,7 +4,7 @@
 
 #from virtonomics import *
 import math, random, time
-from virtonomics2 import Virtonomics as Virta
+from virtonomics import Virta
 
 
 def sigmoid(x, slope=1, bound=1):
