@@ -1123,16 +1123,16 @@ class MyVirta(Virta):
     
     
     def manage_restaurants(self, days=3):
-        def calculate_new_price(history, max_visitors, min_price=0):
-            if not history or not max_visitors:
+        def calculate_new_price(history, max_customers, min_price=0):
+            if not history or not max_customers:
                 return None
             current_price = history[0]['price']
             current_sold = history[0]['sold']
             if None in [current_price, current_sold]:
                 return None
-            almost_max_visitors = 0.96 * max_visitors
+            almost_max_visitors = 0.96 * max_customers
             if current_sold < almost_max_visitors:
-                equivalent_price = current_price * current_sold / max_visitors
+                equivalent_price = current_price * current_sold / max_customers
                 new_price = (current_price + equivalent_price) / 2
             else:
                 consecutive_days_with_max = 0
@@ -1159,7 +1159,8 @@ class MyVirta(Virta):
             unit = self.unit_summary(unit_id)
             if unit['name'][:1] == '*':
                 continue
-            new_price = calculate_new_price(self.service_history(unit_id), unit['customers'],
+            max_customers = 50 * unit['employee_count'] if unit['unit_class_kind'] == 'repair' else unit['customers']
+            new_price = calculate_new_price(self.service_history(unit_id), max_customers,
                                             min_price.get(unit['unit_class_kind'], 0))
             if new_price:
                 self.set_service_price(unit_id, new_price)
@@ -1168,7 +1169,7 @@ class MyVirta(Virta):
                 contracts = self.supply_contracts(unit_id)
                 orders = self.supply_contracts_to_orders(contracts)
                 for product_id, product in self.supply_products(unit_id).items():
-                    per_day = product['per_client'] * unit['customers']
+                    per_day = product['per_client'] * max_customers
                     fund = max(0, product['stock'] - per_day)
                     to_order = max(0, days * per_day - fund)
                     if to_order > 1.05 * per_day:

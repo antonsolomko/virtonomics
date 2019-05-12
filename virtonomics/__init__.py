@@ -38,10 +38,12 @@ class Virta:
         industries (dict): List of inductries.
         investigated_technologies (dict): To every unit type id associates the
             list of investigated levels.
+        knowledge (dict): Top manager qualification.
         password (str): User password.
         path (str): Framework directory path.
         product_categories (dict): List of product categories.
         products (Dict): List of products.
+        qualification (dict): Top manager qualification.
         regions (Dict): List of regions.
         server (str): Server name.
         server_date (datetime.date): Current virtual server date.
