@@ -1234,7 +1234,7 @@ if __name__ == '__main__':
     #v.manage_restaurants()
     #v.party_sales()
     #v.set_shops_default_prices()
-    v.set_shops_advertisement()
+    #v.set_shops_advertisement()
     #v.manage_restaurants()
     #v.propagate_contracts()
     #v.manage_shops()
