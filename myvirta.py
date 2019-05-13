@@ -1080,21 +1080,22 @@ class MyVirta(Virta):
             trading_hall_sales = self.trading_hall(shop_id, cache=False)
             offers = {}
             for product_id, trade in trading_halls[shop_id].items():
-                # на случай, если уже вывезли часть товара
+                # на случай, если уже вывезли часть товара, сохраняем текущее значение
                 trade['current_stock'] = trading_hall_sales[product_id]['stock']  
                 if product_id not in products:
-                    new_price = trade['price']  # возвращаем старую цену
+                    new_price = trade['price']  # просто возвращаем старую цену
                 elif trade['price'] > 0:
                     new_price = trade['price']
-                    if trade['stock'] == trade['purchase']:
+                    target = min(target_sales[product_id][shop_id], trade['current_stock'])
+                    if trade['stock'] == trade['purchase'] and target > 0:
                         # если продан весь товар, повышаем цену
-                        clearance_factor = 5
-                        if trade['current_stock'] > 0:
-                            clearance_factor *= sigmoid(trade['sold'] / trade['current_stock'], 10)
-                        new_price *= 1 + max_price_adjustment * (0.5 + clearance_factor * clearance_rate[product_id]**1.5)
-                    elif trade['current_stock'] > 0:
+                        clearance_factor = 0.4 + 9.6 * clearance_rate[product_id]**1.5
+                        stock_ratio = trade['sold'] / target
+                        stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
+                        total_inc = max_price_adjustment * stock_factor * clearance_factor
+                        new_price *= 1 + total_inc
+                    elif target > 0:
                         # корректируем под требуемый объем продаж
-                        target = min(target_sales[product_id][shop_id], trade['current_stock'])
                         new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_price_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
                     if new_price < trading_hall_sales[product_id]['price']:
