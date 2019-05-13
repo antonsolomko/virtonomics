@@ -1089,8 +1089,8 @@ class MyVirta(Virta):
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
                         new_price *= 1 + max_price_adjustment * (0.5 + 9.5 * clearance_rate[product_id]**1.5)
-                    elif trade['current_stock'] > 0:
-                        # иначе, корректируем под требуемый объем продаж
+                    if trade['current_stock'] > 0:
+                        # корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
                         new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_price_adjustment)
                     # Следим, чтобы цена не опускалась ниже распродажной
