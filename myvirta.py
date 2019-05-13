@@ -702,10 +702,11 @@ class MyVirta(Virta):
                     or title == 'Товар не получен из-за низкого качества'
                     #or 'Внедрение технологии на предприятие' in title
                     or 'губернатора' in title and 'Украина' not in title
+                    or 'главы государства' in title and 'Украина' not in title
+                    or 'мэра' in title and not any(name in title for name in ukr_cities)
                     or 'выбран' in title
                     or 'ставки налога на прибыль' in title
                     or 'повышение энерготарифов' in title
-                    or 'мэра' in title and not any(name in title for name in ukr_cities)
                     ]
         self.mark_messages_as(messages)
     
@@ -1159,7 +1160,7 @@ class MyVirta(Virta):
             unit = self.unit_summary(unit_id)
             if unit['name'][:1] == '*':
                 continue
-            max_customers = 50 * unit['employee_count'] if unit['unit_class_kind'] == 'repair' else unit['customers']
+            max_customers = 100 * unit['employee_count'] if unit['unit_class_kind'] == 'repair' else unit['customers']
             new_price = calculate_new_price(self.service_history(unit_id), max_customers,
                                             min_price.get(unit['unit_class_kind'], 0))
             if new_price:
@@ -1231,15 +1232,3 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.generate_retail_reports()
-    #v.manage_restaurants()
-    #v.party_sales()
-    #v.set_shops_default_prices()
-    #v.set_shops_advertisement()
-    #v.manage_restaurants()
-    #v.propagate_contracts()
-    #v.manage_shops()
-    #v.set_shops_innovations(refresh=True)
-    #v.distribute_shop_employees()
-    #v.read_messages()
-    #v.manage_research()
