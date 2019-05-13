@@ -6,7 +6,7 @@ password = os.environ.get('VIRTA_PASSWORD')
 path = os.environ.get('VIRTA_DIR', os.getcwd())
 db_name = 'v.db'
 state_kinds = ('farm', 'fishingbase', 'mine', 'orchard', 'sawmill', 'villa')
-today = datetime.datetime.today().date()
+today = (datetime.datetime.today() - datetime.timedelta(hours=1)).date()
 api = {
     'cities': 
         'geo/city/browse',

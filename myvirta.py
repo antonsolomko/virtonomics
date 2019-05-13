@@ -1236,4 +1236,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.manage_shops()
+    v.manage_shops()
