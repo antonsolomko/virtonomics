@@ -67,35 +67,106 @@ class Virta:
     from ._init import __init__
     from ._del import __del__, quit
     from ._attributes import __getattr__
-    from ._session import open_session
-    from ._database import open_database, initialize_database
-    from ._date import get_server_date, get_days_to_refresh
-    from ._message import messages, mark_messages_as
-    from ._macro import produce, city_rent, retail_metrics, offers
-    from ._unit import (unit_summary, refresh, rename_unit, get_unit_notice,
-                        set_unit_notice, set_technology, resize_unit, cancel_resize_unit,
-                        set_innovation, remove_innovation, create_unit, sale_unit, 
-                        cancel_sale_unit, close_unit)
-    from ._equipment import (supply_equipment, buy_equipment, repair_equipment, 
-                             destroy_equipment, supply_equipment_all, buy_equipment_all, 
-                             repair_equipment_all, upgrade_equipment)
-    from ._employee import set_employees, holiday_set, holiday_unset
-    from ._supply import (supply_contracts, supply_products, create_supply_contract,
-                          destroy_supply_contract, set_supply_contracts,
-                          supply_contracts_to_orders)
-    from ._sale import (sale_contracts, sale_offers, set_sale_offers, 
-                        destroy_sale_contracts, reorder_sale_contracts)
-    from ._shop import (trading_hall, set_shop_sale_prices, set_shop_sales_prices,
-                        distribute_shop_employees, product_move_to_warehouse,
-                        product_terminate)
-    from ._service import service_history, set_service_price
-    from ._advertisement import set_advertisement, stop_advertisement
-    from ._research import (lab_employees_required, technologies, 
-                            researchable_technologies, start_research_project,
-                            stop_research_project, select_hypotesis,
-                            set_experemental_unit, hypothesis_stydy_expected_time,
-                            choose_hypothesis, choose_experimental_unit)
-    from ._politics import (days_to_election, city_change_council_tax, 
-                            city_money_project, city_change_rent, region_money_project,
-                            country_money_project, send_yacht_to_regatta)
-    from ._farm import farm_season
+    from ._session import open_session  # 
+    from ._database import (
+        open_database,  # 
+        initialize_database,  # 
+        )
+    from ._date import (
+        get_server_date,  # 
+        get_days_to_refresh,  # 
+        )
+    from ._message import (
+        messages,  # 
+        mark_messages_as,  # 
+        )
+    from ._macro import (
+        produce,  # 
+        city_rent,  # 
+        retail_metrics,  # 
+        offers,  # 
+        )
+    from ._unit import (
+        unit_summary,  # 
+        refresh,  # 
+        rename_unit,  # 
+        get_unit_notice,  # 
+        set_unit_notice,  # 
+        set_technology,  # 
+        resize_unit,  # 
+        cancel_resize_unit,  # 
+        set_innovation,  # 
+        remove_innovation,  # 
+        create_unit,  # 
+        sale_unit,  # 
+        cancel_sale_unit,  # 
+        close_unit,  # 
+        )
+    from ._equipment import (
+        supply_equipment,  # 
+        buy_equipment,  # 
+        repair_equipment,  # 
+        destroy_equipment,  # 
+        supply_equipment_all,  # 
+        buy_equipment_all,  # 
+        repair_equipment_all,  # 
+        upgrade_equipment,  # 
+        )
+    from ._employee import (
+        set_employees,  # 
+        holiday_set,  # 
+        holiday_unset,  # 
+        )
+    from ._supply import (
+        supply_contracts,  # 
+        supply_products,  # 
+        create_supply_contract,  # 
+        destroy_supply_contract,  # 
+        set_supply_contracts,  # 
+        supply_contracts_to_orders,  # 
+        )
+    from ._sale import (
+        sale_contracts,  # 
+        sale_offers,  # 
+        set_sale_offers,  # 
+        destroy_sale_contracts,  # 
+        reorder_sale_contracts,  # 
+        )
+    from ._shop import (
+        trading_hall,  # 
+        set_shop_sale_prices,  # 
+        set_shop_sales_prices,  # 
+        distribute_shop_employees,  # 
+        product_move_to_warehouse,  # 
+        product_terminate,  # 
+        )
+    from ._service import (
+        service_history,  # 
+        set_service_price,  # 
+        )
+    from ._advertisement import (
+        set_advertisement,  # 
+        stop_advertisement,  # 
+        )
+    from ._research import (
+        lab_employees_required,  # 
+        technologies,  # 
+        researchable_technologies,  # 
+        start_research_project,  # 
+        stop_research_project,  # 
+        select_hypotesis,  # 
+        set_experemental_unit,  # 
+        hypothesis_stydy_expected_time,  # 
+        choose_hypothesis,  # 
+        choose_experimental_unit,  # 
+        )
+    from ._politics import (
+        days_to_election,  # 
+        city_change_council_tax,  # 
+        city_money_project,  # 
+        city_change_rent,  # 
+        region_money_project,  # 
+        country_money_project,  # 
+        send_yacht_to_regatta,  # 
+        )
+    from ._farm import farm_season  # 
