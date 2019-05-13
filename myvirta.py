@@ -9,7 +9,7 @@ from virtonomics import Virta
 
 
 def sigmoid(x, slope=1, bound=1):
-    return  1 + bound * (2 / (1 + math.exp(-2*slope*(x-1)/bound)) - 1) if bound>0 else 1
+    return  1 + bound * (2 / (1 + math.exp(-2*slope*(x-1)/bound)) - 1) if bound else 1
 
 def log(x, default=0, *args, **kwargs):
     return math.log(x, *args, **kwargs) if x > 0 else default
@@ -1088,8 +1088,11 @@ class MyVirta(Virta):
                     new_price = trade['price']
                     if trade['stock'] == trade['purchase']:
                         # если продан весь товар, повышаем цену
-                        new_price *= 1 + max_price_adjustment * (0.5 + 9.5 * clearance_rate[product_id]**1.5)
-                    if trade['current_stock'] > 0:
+                        clearance_factor = 5
+                        if trade['current_stock'] > 0:
+                            clearance_factor *= sigmoid(trade['sold'] / trade['current_stock'], 10)
+                        new_price *= 1 + max_price_adjustment * (0.5 + clearance_factor * clearance_rate[product_id]**1.5)
+                    elif trade['current_stock'] > 0:
                         # корректируем под требуемый объем продаж
                         target = min(target_sales[product_id][shop_id], trade['current_stock'])
                         new_price *= sigmoid(trade['sold'] / target, 1 / elasticity, max_price_adjustment)
@@ -1232,3 +1235,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    #v.manage_shops()
