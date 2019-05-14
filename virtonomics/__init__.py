@@ -167,8 +167,8 @@ class Virta:
         city_change_rent,  # 
         region_money_project,  # 
         country_money_project,  # 
-        election_candidates,  # 
-        #vote,  # 
-        send_yacht_to_regatta,  # 
+        election_candidates,  # список кандидатов на выборах
+        vote,  # проголосовать на выборах за указанного кандидата
+        send_yacht_to_regatta,  # отправить яхту на регану
         )
     from ._farm import farm_season  # 

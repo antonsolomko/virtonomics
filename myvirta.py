@@ -263,45 +263,30 @@ class MyVirta(Virta):
                 country['id'], ['sport', 'food', 'ecology', 'transport'])
     
     
-    def vote(self, election_id):
-        """Vote at a given election"""
-        
-        url = self.domain_ext + 'politics/elections/%s' % election_id
-        page = self.session.tree(url)
-        xp = '//div[@class="title"][.=%s]/../../../td/input/@value'
+    def election_vote(self, election_id):
+        """Vote for candidates from supported parties at a given election"""
+        candidates = self.election_candidates(election_id)
         for party_name in self.supported_parties:
-            if '"' in party_name:
-                party_name = "'" + party_name + "'"
-            else:
-                party_name = '"' + party_name + '"'
-            members = page.xpath(xp % party_name)
-            if members:
+            if party_name in candidates:
                 print('  vote for', party_name)
-                supported_candidate = members[0]
+                supported_candidate_id = candidates[party_name]
                 break
         else:
-            candidates = page.xpath('//input[@name="member"]/@value')
-            if not candidates:
-                candidates = page.xpath('//input[@name="pr_member"]/@value')
-            if len(set(candidates)) == 2:
+            if len(set(candidates.values())) == 1:
                 print('  vote for the only candidate')
-                supported_candidate = candidates[0]
+                supported_candidate_id = next(iter(candidates.values()))
             else:
-                return None
-        data = {
-            'member': supported_candidate,
-            'pr_member': supported_candidate
-            }
-        return self.session.post(url, data=data)
+                return
+        self.vote(election_id, supported_candidate_id)
     
     
     def elections_vote(self):
-        """Vote in all elections"""
+        """Vote for candidates from supported parties in all elections"""
         
         print('\nELECTIONS')
         for election_id, election in self.elections(days_to_election=(0,1,2,3)).items():
             print(election_id, election['location_name'])
-            self.vote(election_id)
+            self.election_vote(election_id)
     
     
     def politics(self):
@@ -712,7 +697,7 @@ class MyVirta(Virta):
     
     
     ### UNDER DEVELOPMENT ###
-    
+    '''
     def manage_shop0(self, shop_id, days=3):
         def compute_price(position):
             def exp(percent, p0=1.5, p1=3, p2=6):
@@ -834,7 +819,7 @@ class MyVirta(Virta):
         for shop_id, shop in self.units(unit_class_kind='shop').items():
             print(shop['name'])
             self.manage_shop(shop_id)
-    
+    '''
     
     def set_shops_advertisement(self, target_customers=770000):
         for shop_id in self.units(name='*****'):
@@ -1236,4 +1221,5 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.manage_shops()
+    #v.elections_vote()
+    #v.manage_shops()

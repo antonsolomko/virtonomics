@@ -267,14 +267,17 @@ def country_money_project(self, country_id, project_name):
 def election_candidates(self, election_id):
     url = self.domain_ext + 'politics/elections/%s' % election_id
     page = self.session.tree(url)
+    rows = page.xpath('//input[@type="radio" and @name="member" and @value!=0]/../..')
+    if not rows:
+        rows = page.xpath('//input[@type="radio" and @name="pr_member" and @value!=0]/../..')
     result = {}
-    for row in page.xpath('//input[@type="radio" and @name="member" and @value!=0]/../..'):
+    for row in rows:
         candidate_id = int(row.xpath('.//input[@type="radio"]/@value')[0])
         party = row.xpath('.//div[@class="title"]/text()')
         if party:
             party = str(party[0])
         else:
-            party = 'Current'
+            party = 'current'
         result[party] = candidate_id
     return result
 
