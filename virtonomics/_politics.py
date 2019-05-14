@@ -264,6 +264,30 @@ def country_money_project(self, country_id, project_name):
     self.session.get(url)
 
 
+def election_candidates(self, election_id):
+    url = self.domain_ext + 'politics/elections/%s' % election_id
+    page = self.session.tree(url)
+    result = {}
+    for row in page.xpath('//input[@type="radio" and @name="member" and @value!=0]/../..'):
+        candidate_id = int(row.xpath('.//input[@type="radio"]/@value')[0])
+        party = row.xpath('.//div[@class="title"]/text()')
+        if party:
+            party = str(party[0])
+        else:
+            party = 'Current'
+        result[party] = candidate_id
+    return result
+
+
+def vote(self, election_id, candidate_id):
+    url = self.domain_ext + 'politics/elections/%s' % election_id
+    data = {
+        'member': candidate_id,
+        'pr_member': candidate_id
+        }
+    return self.session.post(url, data=data)
+
+
 def send_yacht_to_regatta(self, unit_id):
     """Send yacht to the world regatta.
     (Отправить яхту на мировую регату)
