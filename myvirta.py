@@ -821,7 +821,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     '''
     
-    def set_shops_advertisement(self, target_customers=770000):
+    def set_shops_advertisement(self, target_customers=780000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
@@ -1221,5 +1221,5 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.elections_vote()
+    #v.set_shops_advertisement()
     #v.manage_shops()
