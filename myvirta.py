@@ -294,7 +294,7 @@ class MyVirta(Virta):
         self.manage_cities()
         self.manage_regions()
         self.manage_countries()
-        self.elections_vote()
+        #self.elections_vote()
         self.buy_equipment(6247327, 7970419, 4)
         self.send_yacht_to_regatta(6247327)
     
