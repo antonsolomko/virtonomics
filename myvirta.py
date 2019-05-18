@@ -892,9 +892,10 @@ class MyVirta(Virta):
         max_market_share = 0.4  # максимальная доля рынка
         max_market_share_stock = 0.5  # максимальный запас относительно рынка
         max_sales_adjustment = 0.1  # максимальных шаг изменения продаж
-        max_price_adjustment = 0.01  # максимальных шаг изменения цены
+        max_price_adjustment = 0.02  # максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
+        target_stock_ratio = (1 + max_market_share / max_market_share_stock) / 2
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
@@ -1071,13 +1072,14 @@ class MyVirta(Virta):
                     new_price = trade['price']  # просто возвращаем старую цену
                 elif trade['price'] > 0:
                     new_price = trade['price']
-                    target = min(target_sales[product_id][shop_id], trade['current_stock'])
+                    target = min(target_sales[product_id][shop_id], 
+                                 trade['current_stock'] * target_stock_ratio)
                     if trade['stock'] == trade['purchase'] and target > 0:
                         # если продан весь товар, повышаем цену
                         clearance_factor = 0.4 + 9.6 * clearance_rate[product_id]**1.5
                         stock_ratio = trade['sold'] / target
                         stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
-                        total_inc = max_price_adjustment * stock_factor * clearance_factor
+                        total_inc = 0.5 * max_price_adjustment * stock_factor * clearance_factor
                         new_price *= 1 + total_inc
                     elif target > 0:
                         # корректируем под требуемый объем продаж
