@@ -265,19 +265,25 @@ class MyVirta(Virta):
     
     def election_vote(self, election_id):
         """Vote for candidates from supported parties at a given election"""
+        
         candidates = self.election_candidates(election_id)
+        supported_candidate_id = None
         for party_name in self.supported_parties:
             if party_name in candidates:
-                print('  vote for', party_name)
                 supported_candidate_id = candidates[party_name]
                 break
         else:
             if len(set(candidates.values())) == 1:
-                print('  vote for the only candidate')
                 supported_candidate_id = next(iter(candidates.values()))
-            else:
-                return
-        self.vote(election_id, supported_candidate_id)
+        
+        current = candidates.get('current', None)
+        for party_name, candidate_id in candidates.items():
+            if party_name != 'current':
+                print(' ', party_name + (' (действующий)' if candidate_id==current else ''),
+                      '+' if candidate_id==supported_candidate_id else '')
+        
+        if supported_candidate_id:
+            self.vote(election_id, supported_candidate_id)
     
     
     def elections_vote(self):
@@ -1223,5 +1229,3 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    #v.set_shops_advertisement()
-    #v.manage_shops()
