@@ -98,6 +98,7 @@ class MyVirta(Virta):
             8393314: 'educational',
             4974307: 'lab',
             8197411: 'restaurant',
+            8535772: 'repair',
             }
         '''
         # Find supplier for restaurants
@@ -300,7 +301,7 @@ class MyVirta(Virta):
         self.manage_cities()
         self.manage_regions()
         self.manage_countries()
-        #self.elections_vote()
+        self.elections_vote()
         self.buy_equipment(6247327, 7970419, 4)
         self.send_yacht_to_regatta(6247327)
     
@@ -901,7 +902,7 @@ class MyVirta(Virta):
         max_price_adjustment = 0.02  # максимальных шаг изменения цены
         elasticity = 20  # эластичность спроса
         sales_price_factor = 2  # множитель к распродажной цене для новых товаров
-        target_stock_ratio = (1 + max_market_share / max_market_share_stock) / 2
+        target_stock_ratio = max_market_share / max_market_share_stock
         
         shops = self.units(name='*****')
         cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
