@@ -116,6 +116,7 @@ class Virta:
         set_employees,  # 
         holiday_set,  # 
         holiday_unset,  # 
+        set_max_employee_level,  #
         )
     from ._supply import (
         supply_contracts,  # 

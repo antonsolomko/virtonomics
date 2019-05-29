@@ -1,3 +1,6 @@
+import math
+
+
 def set_employees(self, unit_id, quantity=0, salary=0, salary_max=0,
                   target_level=0, trigger=0):
     """Set employees characteristics for a given unit.
@@ -64,3 +67,51 @@ def holiday_unset(self, unit_id):
     result = self.session.post(url)
     self.refresh(unit_id)
     return result
+
+
+def set_max_employee_level(self, unit_id):
+    """Set the maximal employee level, given the total number of employees, 
+    the number of employees at the given unitt and top qualification.
+    """
+    
+    bases = {
+        'management': 2,
+        'it': 2,
+        'car': 5,
+        'medicine': 25,
+        'educational': 3,
+        'restaurant': 10,
+        'service': 3,
+        'trade': 10,
+        'mining': 200,
+        'manufacture': 100,
+        'power': 150,
+        'animal': 15,
+        'fishing': 25,
+        'farming': 40,
+        'research': 10
+        }
+    
+    unit = self.unit_summary(unit_id)
+    knowledge_area = unit['knowledge_area_kind']
+    if knowledge_area not in bases:
+        return
+    competence = self.knowledge[knowledge_area]
+    base = bases[knowledge_area]
+    all_staff_base = base * competence * (competence + 3)
+    load = unit['all_staff'] / all_staff_base
+    if load > 1.2: 
+        load = 1.2
+    if load < 1 / 1.2: 
+        load = 1 / 1.2
+    employee_count = unit['employee_count']
+    if employee_count > 0:
+        employee_level = 1 + math.log(
+            base * competence**2 / load**2 / employee_count, 1.4)
+        employee_level = int(100 * employee_level) / 100
+        print(unit_id, employee_count, employee_level)
+        return self.set_employees(unit_id, quantity=employee_count, 
+                                  target_level=employee_level, trigger=1)
+    else:
+        print(unit_id, 'auto')
+        return self.set_employees(unit_id, quantity=employee_count, trigger=2)

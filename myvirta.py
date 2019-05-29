@@ -1186,6 +1186,14 @@ class MyVirta(Virta):
                 self.set_supply_contracts(unit_id, orders)
     
     
+    def set_max_employees_level_all(self, kinds=None):
+        print('Setting max employees level')
+        if not kinds:
+            kinds = ['educational', 'service_light', 'restaurant', 'repair']
+        for unit_id in self.units(unit_class_kind=kinds):
+            self.set_max_employee_level(unit_id)
+    
+    
     def generate_retail_reports(self):
         data = {}
         for rec in self.db.execute('SELECT * FROM product_date_report').fetchall():
@@ -1234,3 +1242,4 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
+    v.set_max_employees_level_all('repair')
