@@ -828,7 +828,7 @@ class MyVirta(Virta):
             self.manage_shop(shop_id)
     '''
     
-    def set_shops_advertisement(self, target_customers=800000):
+    def set_shops_advertisement(self, target_customers=810000):
         for shop_id in self.units(name='*****'):
             self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
     
@@ -839,10 +839,10 @@ class MyVirta(Virta):
             self.set_innovation(shop_id, 'shop_retail', refresh=refresh)
     
     
-    def distribute_shop_employees(self):
+    def distribute_shops_employees(self):
         units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
                  if unit['name'] == '*****' or unit['name'][0] != '*']
-        return super().distribute_shop_employees(units, reserve=100)
+        return self.distribute_shop_employees(units, reserve=100)
     
     
     def set_shop_default_prices(self, shop_id, factor=2):
@@ -905,7 +905,6 @@ class MyVirta(Virta):
         target_stock_ratio = max_market_share / max_market_share_stock
         
         shops = self.units(name='*****')
-        #cities = self.cities(city_id=[shop['city_id'] for shop in shops.values()])  # города, в которых маги
         # Вытягиваем из ведущего магазина список товаров, которыми торгуем
         products = {p['product_id']: p 
                     for p in self.supply_contracts(reference_shop_id).values()
@@ -948,14 +947,10 @@ class MyVirta(Virta):
                 else:
                     # Иначе читаем напрямую из розничного отчета по городу
                     print('!', end='')
-                    city = self.cities.get(shop['city_id'], None)
-                    #city = cities[shop['city_id']]
-                    if city:
-                        geo = city['country_id'], city['region_id'], city['city_id']
-                        markets[product_id][shop['city_id']] = self.retail_metrics(
-                            product_id, geo)['local_market_size']
-                    else:
-                        markets[product_id][shop['city_id']] = 1
+                    city = self.cities[shop['city_id']]
+                    geo = city['country_id'], city['region_id'], city['city_id']
+                    markets[product_id][shop['city_id']] = self.retail_metrics(
+                        product_id, geo)['local_market_size']
             # Считаем суммврный объем всех рынков для каждого товару
             markets[product_id]['total_market_size'] = sum(markets[product_id].values())
         
@@ -1242,4 +1237,3 @@ class MyVirta(Virta):
     
 if __name__ == '__main__':
     v = MyVirta('olga')
-    v.set_max_employees_level_all('repair')
