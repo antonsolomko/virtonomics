@@ -19,7 +19,9 @@ def set_shops_advertisement(self, target_customers=None):
     if not target_customers:
         target_customers = TARGET_CUSTOMERS
     for shop_id in self.units(name='*****'):
-        self.set_advertisement(shop_id, target_customers=target_customers, innovation=True)
+        sections = max(1, self.unit_summary(shop_id)['section_count'])
+        self.set_advertisement(shop_id, target_customers=target_customers/sections, 
+                               innovation=True)
 
 
 def set_shops_innovations(self, refresh=False):

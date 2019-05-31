@@ -1,13 +1,13 @@
-TARGET_CUSTOMERS = 810000
+TARGET_CUSTOMERS = 1620000
 REFERENCE_SHOP_ID = 7559926
 MIN_MARKET_SHARE = 0.01  # минимальная доля рынка
 MAX_MARKET_SHARE = 0.4  # максимальная доля рынка
-MAX_MARKET_SHARE_STOCK = 0.5  # максимальный запас относительно рынка
+MAX_MARKET_SHARE_STOCK = 0.6  # максимальный запас относительно рынка
 MAX_SALES_ADJUSTMENT = 0.1  # максимальных шаг изменения продаж
 MAX_PRICE_ADJUSTMENT = 0.02  # максимальных шаг изменения цены
 ELASTICITY = 20  # эластичность спроса
 SALES_PRICE_FACTOR = 2  # множитель к распродажной цене для новых товаров 
-TARGET_STOCK_RATIO = 0.8  
+TARGET_STOCK_RATIO = 0.8  # 
 
 ECO_FACTORS = (
     'Промышленный и бытовой мусор',
@@ -48,4 +48,15 @@ EQUIPMENT_SUPPLIERS = {
     4974307: 'lab',
     8197411: 'restaurant',
     8535772: 'repair',
+    }
+
+MAX_TECHNOLOGIES = {
+    'animalfarm': 28, 
+    'farm': 23, 
+    'mill': 30, 
+    'mine': 23, 
+    'orchard': 23, 
+    'sawmill': 30,
+    'workshop': 30,
+    'power': 22,
     }

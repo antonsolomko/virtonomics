@@ -111,7 +111,9 @@ def set_max_employee_level(self, unit_id):
         employee_level = int(100 * employee_level) / 100
         print(unit_id, employee_count, employee_level)
         return self.set_employees(unit_id, quantity=employee_count, 
-                                  target_level=employee_level, trigger=1)
+                                  target_level=employee_level, trigger=1,
+                                  salary_max=50000)
     else:
         print(unit_id, 'auto')
-        return self.set_employees(unit_id, quantity=employee_count, trigger=2)
+        return self.set_employees(unit_id, quantity=employee_count, trigger=2,
+                                  salary_max=50000)

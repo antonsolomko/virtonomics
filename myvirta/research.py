@@ -1,20 +1,15 @@
+from .const import MAX_TECHNOLOGIES
+
+
 def set_technologies(self):
     print('UPDATE TECHNOLOGIES')
-    types = {
-        'animalfarm': 27, 
-        'farm': 23, 
-        'mill': 30, 
-        'mine': 23, 
-        'orchard': 23, 
-        'sawmill': 30,
-        'workshop': 30}
-    for unit_id in self.units(unit_class_kind=list(types.keys())):
+    for unit_id in self.units(unit_class_kind=list(MAX_TECHNOLOGIES.keys())):
         unit = self.unit_summary(unit_id, refresh=True)
         level = unit.get('technology_level')
         if level:
             available_levels = self.investigated_technologies.get(
                                    unit['unit_type_id'], [0])
-            top_level = types[unit['unit_class_kind']]
+            top_level = 100 if unit['name'][:1] == '=' else MAX_TECHNOLOGIES[unit['unit_class_kind']]
             max_level = max(v for v in available_levels if v <= top_level)
             if max_level > level:
                 print(unit['id'], unit['name'], level, '->', max_level)
@@ -104,6 +99,7 @@ def manage_research(self):
                     else:
                         print(' No experimental units available of size',
                               min_size, 'and technology level', level-1)
+                        self.set_unit_notice(lab_id, 'No experimental unit!')
             else:
                 num = len(lab_stages)
                 for lab_id, stage in lab_stages.items():
