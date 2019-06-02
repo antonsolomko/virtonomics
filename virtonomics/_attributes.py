@@ -3,11 +3,7 @@ from .jsondecoder import Decoder
 from._date import str_to_date
 
 def __getattr__(self, attrname):
-    if attrname in ['__produce', '__unit_summary', '__technologies', '__city_rent']:
-        setattr(self, attrname, {})
-        return getattr(self, attrname)
-    
-    elif attrname == 'session':
+    if attrname == 'session':
         return self.open_session()
         
     elif attrname == 'db' or attrname == 'conn':

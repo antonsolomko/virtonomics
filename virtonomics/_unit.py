@@ -17,6 +17,8 @@ def unit_summary(self, unit_id, refresh=False):
         the unit and top manager effectiveness forecast.
     """
     
+    if not hasattr(self, '__unit_summary'):
+        self.__unit_summary = {}
     if refresh or unit_id not in self.__unit_summary:
         if refresh:
             self.refresh(unit_id)

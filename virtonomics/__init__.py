@@ -155,7 +155,8 @@ class Virta:
         set_technology_offer,  # 
         destroy_technology_offers,  # 
         technology_offers,  # 
-        technology_sellers_info,  # 
+        technology_sellers_all,  # 
+        technology_sellers_med,  # 
         )
     from ._research import (
         lab_employees_required,  # 

@@ -31,6 +31,8 @@ def technologies(self, unittype_id):
         v.technologies(2071).select(level=15)
     """
     
+    if not hasattr(self, '__technologies'):
+        self.__technologies = {}
     if unittype_id not in self.__technologies:
         url = self.api['technologies']
         data = {'company_id': self.company['id'], 'id': unittype_id}
@@ -115,7 +117,7 @@ def technology_offers(self, refresh: bool=False) -> dict:
     return self.__technology_offers
 
 
-def technology_sellers_info(self, unittype_id: int, level: int) -> dict:
+def technology_sellers_all(self, unittype_id: int, level: int) -> dict:
     """Предложения всех компаний.
     
     Arguments:
@@ -123,7 +125,7 @@ def technology_sellers_info(self, unittype_id: int, level: int) -> dict:
         level (int)
     
     Returns:
-        Dictionary company_id -> price
+        Dict: company_id -> price
     """
     
     url = (self.domain_ext 
@@ -137,3 +139,31 @@ def technology_sellers_info(self, unittype_id: int, level: int) -> dict:
         price = float(row.xpath('./td[2]/text()')[0].replace(' ', '').replace('$', ''))
         result[company_id] = price
     return result
+
+
+def technology_sellers_med(self, unittype_id: int, level: int) -> dict:
+    """Предложения, формирующие раносную стоимость технологии.
+    
+    Returns:
+        Dict: A subset of technology_sellers_all(unittype_id, level) such that
+            the technology market price equals the mean over this subset.
+    """
+    
+    sellers = self.technology_sellers_all(unittype_id, level)
+    if not sellers:
+        return {}
+    prices = sorted(sellers.values())
+    mean = lambda prices: round(sum(prices) / len(prices), 2) if prices else 0
+    mean_price = self.technologies(unittype_id).select(level=level)['price']
+    first, last = 0, len(prices)
+    errors = []
+    while first < last:
+        error = mean(prices[first:last]) - mean_price
+        errors.append((abs(error), first, -last))
+        if error < 0:
+            first += 1
+        else:
+            last -= 1
+    _, first, mlast = min(errors)
+    companies = sorted(sellers, key=lambda c: sellers[c])[first:-mlast]
+    return {c: p for (c, p) in sellers.items() if c in companies}

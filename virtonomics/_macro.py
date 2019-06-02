@@ -5,6 +5,8 @@ from .types import List, Dict
 def produce(self, unittype_id):
     """Production information for a given unit type."""
     
+    if not hasattr(self, '__produce'):
+        self.__produce = {}
     if unittype_id not in self.__produce:
         url = self.api['produce'].format(unittype_id=unittype_id)
         self.__produce[unittype_id] = self.session.get(url).json(cls=Decoder)
@@ -18,6 +20,8 @@ def city_rent(self, city_id):
         List.
     """
     
+    if not hasattr(self, '__city_rent'):
+        self.__city_rent = {}
     if city_id not in self.__city_rent:
         url = self.api['city_rent'].format(city_id=city_id)
         self.__city_rent[city_id] = List(self.session.get(url).json(cls=Decoder))
