@@ -173,3 +173,8 @@ class Virta:
         send_yacht_to_regatta,  # отправить яхту на регану
         )
     from ._farm import farm_season  # 
+    from ._tender import (
+        tenders,  # 
+        tender_register,  # 
+        tender_register_all,  # 
+        )

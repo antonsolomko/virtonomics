@@ -20,7 +20,8 @@ def set_shops_advertisement(self, target_customers=None):
         target_customers = TARGET_CUSTOMERS
     for shop_id in self.units(name='*****'):
         sections = max(1, self.unit_summary(shop_id)['section_count'])
-        self.set_advertisement(shop_id, target_customers=target_customers/sections, 
+        customers = target_customers // sections
+        self.set_advertisement(shop_id, target_customers=customers, 
                                innovation=True)
 
 

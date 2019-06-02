@@ -42,6 +42,8 @@ api = {
         'unit/supply/contracts?id={unit_id}{product_filter}&pagesize=1000000',
     'technologies': 
         'unittype/technologies',
+    'tender':
+        'tender',
     'token': 
         'token',
     'unit_forecast': 
