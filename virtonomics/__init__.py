@@ -149,10 +149,16 @@ class Virta:
         set_advertisement,  # 
         stop_advertisement,  # 
         )
-    from ._research import (
-        lab_employees_required,  # 
+    from ._technology import (
         technologies,  # 
         researchable_technologies,  # 
+        set_technology_offer,  # 
+        destroy_technology_offers,  # 
+        technology_offers,  # 
+        technology_sellers_info,  # 
+        )
+    from ._research import (
+        lab_employees_required,  # 
         start_research_project,  # 
         stop_research_project,  # 
         select_hypotesis,  # 

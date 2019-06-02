@@ -1,5 +1,6 @@
 from .types import Dict
 from .jsondecoder import Decoder
+from datetime import datetime
 
 
 @property
@@ -10,7 +11,8 @@ def tenders(self):
     for day_data in data:
         for tender in day_data['tenders']:
             print(tender['tender_id'])
-            tender['estimated_real_date'] = day_data['estimated_real_date']
+            tender['estimated_real_date'] = datetime.strptime(
+                day_data['estimated_real_date'], "%Y-%m-%d").date()
             result[tender['tender_id']] = tender
     return result
 

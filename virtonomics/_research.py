@@ -1,7 +1,3 @@
-from .types import List
-from .jsondecoder import Decoder
-
-
 @staticmethod
 def lab_employees_required(level):
     """Number of employees needed for a given technological level"""
@@ -12,61 +8,6 @@ def lab_employees_required(level):
             23: 700, 24: 700, 25: 700, 26: 850, 27: 850, 28: 1000
            }
     return empl.get(level, 1000) if level > 1 else 0
-
-
-def technologies(self, unittype_id):
-    """Technology market overview for a given unit type.
-    
-    Arguments:
-        unittype_id (int): Unit type id.
-
-    Returns:
-        List: Known or investigated technologies summary by levels.
-        Technology status codes:
-            0 - not invented, known
-            1 - invented (own invention)
-            2 - invented (own invention) and offered for sale
-            3 - not invented, not known
-            4 - bought, not invented
-            5 - current research
-    
-    Note:
-        Result is a List object and thus can be filtered by arbitrary
-        attributes.
-        
-    Example:
-        # List of the levels available to the company for free
-        # (algeady investigated or bought)
-        v.technologies(unittype_id)(status=(1,2,4))
-        
-        # Record for a particular level
-        v.technologies(2071).select(level=15)
-    """
-    
-    if unittype_id not in self.__technologies:
-        url = self.api['technologies']
-        data = {'company_id': self.company['id'], 'id': unittype_id}
-        result = self.session.post(url, data=data).json(cls=Decoder)
-        self.__technologies[unittype_id] = List(result)
-    return self.__technologies[unittype_id]
-
-
-def researchable_technologies(self, unittype_id):
-    """List of technology levels that can be studied.
-    
-    Arguments:
-        unittype_id (int): Unit type id.
-
-    Returns:
-        list: Levels available for investigation.
-    """
-    
-    levels = self.technologies(unittype_id)
-    max_level = max((t['level'] for t in levels(status=(1,2,4))), default=1)
-    result = [t['level'] for t in levels
-              if t['level'] <= max_level and t['status'] not in (1,2)]
-    result.append(max_level + 1)
-    return result
 
 
 def start_research_project(self, unit_id, unittype_id, level):
