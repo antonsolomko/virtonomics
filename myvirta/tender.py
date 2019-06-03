@@ -30,7 +30,7 @@ def manage_science_tenders(self):
                     break
                 sellers = self.technology_sellers_med(unittype_id, level)
                 price = round(compute_price(sellers, level), 2)
-                #self.set_technology_offer(unittype_id, level, price)
+                self.set_technology_offer(unittype_id, level, price)
                 print(' ', tech['level'], '(%d)' % len(sellers), market_price, 
                       '->', price)
 
