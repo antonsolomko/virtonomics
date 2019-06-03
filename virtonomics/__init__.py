@@ -72,6 +72,7 @@ class Virta:
     from ._database import (
         open_database,  # 
         initialize_database,  # 
+        db_insert,  # 
         )
     from ._date import (
         get_server_date,  # 

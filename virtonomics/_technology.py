@@ -128,17 +128,22 @@ def technology_sellers_all(self, unittype_id: int, level: int) -> dict:
         Dict: company_id -> price
     """
     
-    url = (self.domain_ext 
-          + 'management_action/%s/investigations/technology_sellers_info/%s/%s' 
-          % (self.company['id'], level, unittype_id))
-    page = self.session.tree(url)
-    xp = '//td/a[contains(@href,"/company/view/")]/../..'
-    result = {}
-    for row in page.xpath(xp):
-        company_id = int(row.xpath('.//a/@href')[0].split('/')[-1])
-        price = float(row.xpath('./td[2]/text()')[0].replace(' ', '').replace('$', ''))
-        result[company_id] = price
-    return result
+    if not hasattr(self, '__technology_sellers_all'):
+        self.__technology_sellers_all = {}
+        
+    if not (unittype_id, level) in self.__technology_sellers_all:
+        url = (self.domain_ext 
+              + 'management_action/%s/investigations/technology_sellers_info/%s/%s' 
+              % (self.company['id'], level, unittype_id))
+        page = self.session.tree(url)
+        xp = '//td/a[contains(@href,"/company/view/")]/../..'
+        result = {}
+        for row in page.xpath(xp):
+            company_id = int(row.xpath('.//a/@href')[0].split('/')[-1])
+            price = float(row.xpath('./td[2]/text()')[0].replace(' ', '').replace('$', ''))
+            result[company_id] = price
+        self.__technology_sellers_all[unittype_id, level] = result
+    return self.__technology_sellers_all[unittype_id, level]
 
 
 def technology_sellers_med(self, unittype_id: int, level: int) -> dict:

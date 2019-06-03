@@ -33,4 +33,23 @@ def initialize_database(self):
             ids TEXT,
             PRIMARY KEY (unit_id, product_id, date)
         )''')
+    self.db.execute('''
+        CREATE TABLE IF NOT EXISTS tech_offers(
+        	unittype_id INT,
+        	date TEXT,
+        	tender_id INT,
+        	tender_day INT,
+        	company_id INT,
+        	price REAL,
+        	impact BOOLEAN,
+        	PRIMARY KEY (unittype_id, date, company_id)
+        )''')
     self.conn.commit()
+
+
+def db_insert(self, table_name: str, data: dict):
+    """Insert values from data into a table"""
+    
+    query = 'INSERT OR IGNORE INTO {0} ({1}) VALUES ({2})'.format(
+            table_name, ', '.join(data.keys()), ', '.join('?'*len(data)))
+    self.db.execute(query, list(data.values()))

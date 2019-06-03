@@ -1,3 +1,21 @@
+def save_technology_sellers_to_db(self, unittype_id: int, level: int,
+                                  tender_id: int=None, tender_day: int=None):
+    sellers_all = self.technology_sellers_all(unittype_id, level)
+    sellers_med = self.technology_sellers_med(unittype_id, level)
+    for company_id, price in sellers_all.items():
+        data = {
+            'unittype_id': unittype_id,
+            'date': self.today,
+        	'tender_id': tender_id,
+        	'tender_day': tender_day,
+        	'company_id': company_id,
+        	'price': price,
+        	'impact': company_id in sellers_med,
+            }
+        self.db_insert('tech_offers', data)
+    self.conn.commit()
+
+
 def manage_science_tenders(self):
     def compute_price(sellers, level=2):
         sellers_num = len(sellers)
@@ -16,6 +34,9 @@ def manage_science_tenders(self):
         unittype_id = tender['tender_params'][0]
         duration = tender['tender_type']
         print(tender_id, days_left, '[%d]' % duration)
+        for level in range(2, 50):
+            self.save_technology_sellers_to_db(unittype_id, level, tender_id,
+                                               duration - days_left)
         if days_left <= 0:
             # Снять технологии с продажи
             self.destroy_technology_offers([(unittype_id, level) for level in range(2, 50)])

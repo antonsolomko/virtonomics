@@ -54,9 +54,10 @@ def trading_hall(self, shop_id, cache=False):
             result[res['product_id']] = res
             
             if cache:
-                query = 'INSERT OR IGNORE INTO retail ({0}) VALUES ({1})'.format(
-                        ', '.join(res.keys()), ', '.join('?'*len(res)))
-                self.db.execute(query, list(res.values()))
+                self.db_insert('retail', res)
+                #query = 'INSERT OR IGNORE INTO retail ({0}) VALUES ({1})'.format(
+                #        ', '.join(res.keys()), ', '.join('?'*len(res)))
+                #self.db.execute(query, list(res.values()))
         self.conn.commit()
         
     return Dict(result)
