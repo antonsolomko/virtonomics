@@ -52,6 +52,10 @@ class MyVirta(Virta):
     from .service import manage_restaurants
     from .employee import set_max_employees_level_all
     from .report import generate_retail_reports
+    from .tender import (
+        manage_science_tenders,
+        manage_tenders,
+        )
     
     def __init__(self, server='olga', **kwargs):
         super().__init__(server, **kwargs)

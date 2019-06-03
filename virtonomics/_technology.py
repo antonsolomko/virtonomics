@@ -142,7 +142,7 @@ def technology_sellers_all(self, unittype_id: int, level: int) -> dict:
 
 
 def technology_sellers_med(self, unittype_id: int, level: int) -> dict:
-    """Предложения, формирующие раносную стоимость технологии.
+    """Предложения, формирующие рыночную стоимость технологии.
     
     Returns:
         Dict: A subset of technology_sellers_all(unittype_id, level) such that

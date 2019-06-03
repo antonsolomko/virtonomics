@@ -39,6 +39,7 @@ class Virta:
         investigated_technologies (dict): To every unit type id associates the
             list of investigated levels.
         knowledge (dict): Top manager qualification.
+        knowledge_areas (Dict): Knowledge areas.
         password (str): User password.
         path (str): Framework directory path.
         product_categories (dict): List of product categories.

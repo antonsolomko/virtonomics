@@ -70,5 +70,11 @@ def __getattr__(self, attrname):
             res[name] = qual
         setattr(self, attrname, res)
         return getattr(self, attrname)
+    
+    elif attrname == 'knowledge_areas':
+        url = self.api['knowledge']
+        result = self.session.get(url).json(cls=Decoder)
+        self.knowledge_areas = Dict(result)
+        return self.knowledge_areas
         
     raise AttributeError(attrname)

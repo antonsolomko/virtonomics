@@ -22,6 +22,8 @@ api = {
         'product/goods',
     'industries': 
         'industry/browse',
+    'knowledge': 
+        'knowledge/browse',
     'offers': 
         'marketing/report/trade/offers?product_id={product_id}&pagesize=1000000',
     'produce': 

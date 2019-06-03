@@ -10,11 +10,11 @@ def tenders(self):
     result = {}
     for day_data in data:
         for tender in day_data['tenders']:
-            print(tender['tender_id'])
             tender['estimated_real_date'] = datetime.strptime(
                 day_data['estimated_real_date'], "%Y-%m-%d").date()
+            tender['knowledge_area_kind'] = tender['knowledge']['kind']
             result[tender['tender_id']] = tender
-    return result
+    return Dict(result)
 
 
 def tender_register(self, tender_id):
@@ -30,5 +30,6 @@ def tender_register(self, tender_id):
 
 
 def tender_register_all(self):
-    for tender_id in self.tenders:
-        self.tender_register(tender_id)
+    for tender_id, tender in self.tenders.items():
+        if tender['league'] == 3 or self.knowledge[tender['knowledge']['kind']] <= 30:
+            self.tender_register(tender_id)
