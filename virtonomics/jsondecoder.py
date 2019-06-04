@@ -1,8 +1,8 @@
 import json
 
 class Decoder(json.JSONDecoder):
-    """JSON decoter
-    Transforms numeral strings to numbers, including dictionaries keys.
+    """JSON decoter.
+    Converts numeral strings to numbers, including dictionaries keys.
     """
     
     def decode(self, s):

@@ -13,5 +13,6 @@ def read_messages(self):
                 or 'выбран' in title
                 or 'ставки налога на прибыль' in title
                 or 'повышение энерготарифов' in title
+                or 'Новое достижение' in title
                 ]
     self.mark_messages_as(messages)

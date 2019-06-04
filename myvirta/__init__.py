@@ -50,7 +50,7 @@ class MyVirta(Virta):
         manage_shops,
         )
     from .service import manage_restaurants
-    from .employee import set_max_employees_level_all
+    from .employee import set_max_employee_level_all
     from .report import generate_retail_reports
     from .tender import (
         save_technology_sellers_to_db,
