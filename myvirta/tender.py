@@ -1,16 +1,27 @@
+import math
+
+
 def save_technology_sellers_to_db(self, unittype_id: int, level: int,
                                   tender_id: int=None, tender_day: int=None):
     sellers_all = self.technology_sellers_all(unittype_id, level)
     sellers_med = self.technology_sellers_med(unittype_id, level)
+    mean_price = sum(sellers_med.values()) / len(sellers_med)
+    shares = {company_id: math.exp(-3 * abs(price/mean_price - 0.9))
+              for (company_id, price) in sellers_all.items()}
+    shares_total = sum(shares.values())
+    shares = {company_id: share / shares_total for (company_id, share) in shares}
     for company_id, price in sellers_all.items():
         data = {
             'unittype_id': unittype_id,
+            'level': level,
             'date': self.today,
         	'tender_id': tender_id,
         	'tender_day': tender_day,
         	'company_id': company_id,
         	'price': price,
         	'impact': company_id in sellers_med,
+            'mean_price': round(mean_price, 2),
+            'share': round(mean_price * shares[company_id], 2),
             }
         self.db_insert('tech_offers', data)
     self.conn.commit()

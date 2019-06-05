@@ -36,13 +36,16 @@ def initialize_database(self):
     self.db.execute('''
         CREATE TABLE IF NOT EXISTS tech_offers(
         	unittype_id INT,
+            level INT,
         	date TEXT,
         	tender_id INT,
         	tender_day INT,
         	company_id INT,
         	price REAL,
         	impact BOOLEAN,
-        	PRIMARY KEY (unittype_id, date, company_id)
+            mean_price REAL,
+            share REAL,
+        	PRIMARY KEY (unittype_id, level, date, company_id)
         )''')
     self.conn.commit()
 
