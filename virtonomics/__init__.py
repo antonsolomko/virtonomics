@@ -40,6 +40,8 @@ class Virta:
             list of investigated levels.
         knowledge (dict): Top manager qualification.
         knowledge_areas (Dict): Knowledge areas.
+        oligarch_competition_days_left (int): Days left to the and on oligarch
+            competition.
         password (str): User password.
         path (str): Framework directory path.
         product_categories (dict): List of product categories.
@@ -77,6 +79,7 @@ class Virta:
     from ._date import (
         get_server_date,  # 
         get_days_to_refresh,  # 
+        get_oligarch_competition_days_left,  # 
         )
     from ._message import (
         messages,  # 

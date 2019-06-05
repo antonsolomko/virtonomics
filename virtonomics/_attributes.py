@@ -15,6 +15,9 @@ def __getattr__(self, attrname):
     
     elif attrname == 'days_to_refresh':
         return self.get_days_to_refresh()
+    
+    elif attrname == 'oligarch_competition_days_left':
+        return self.get_oligarch_competition_days_left()
         
     elif attrname in ['token', 'cities', 'regions', 'countries', 'product_categories', 
                       'products', 'goods', 'industries', 'unittypes', 'company', 

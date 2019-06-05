@@ -43,3 +43,13 @@ def get_days_to_refresh(self):
     days_left = (refresh_date - self.server_date).days
     self.days_to_refresh = days_left // 7
     return self.days_to_refresh
+
+
+def get_oligarch_competition_days_left(self):
+    url = self.domain_ext + 'olla'
+    page = self.session.tree(url)
+    xp = '//td[contains(.,"Осталось пересчётов: ")]/text()'
+    days = page.xpath(xp)
+    self.oligarch_competition_days_left = int(
+        days[0].split('Осталось пересчётов: ')[1].split('\n')[0]) if days else None
+    return self.oligarch_competition_days_left
