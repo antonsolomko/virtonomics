@@ -4,12 +4,14 @@ import math
 def save_technology_sellers_to_db(self, unittype_id: int, level: int,
                                   tender_id: int=None, tender_day: int=None):
     sellers_all = self.technology_sellers_all(unittype_id, level)
+    if not sellers_all:
+        return
     sellers_med = self.technology_sellers_med(unittype_id, level)
     mean_price = sum(sellers_med.values()) / len(sellers_med)
     shares = {company_id: math.exp(-3 * abs(price/mean_price - 0.9))
               for (company_id, price) in sellers_all.items()}
     shares_total = sum(shares.values())
-    shares = {company_id: share / shares_total for (company_id, share) in shares}
+    shares = {company_id: share / shares_total for (company_id, share) in shares.items()}
     for company_id, price in sellers_all.items():
         data = {
             'unittype_id': unittype_id,
@@ -17,6 +19,7 @@ def save_technology_sellers_to_db(self, unittype_id: int, level: int,
             'date': self.today,
         	'tender_id': tender_id,
         	'tender_day': tender_day,
+            'olc_days_left': self.oligarch_competition_days_left,
         	'company_id': company_id,
         	'price': price,
         	'impact': company_id in sellers_med,
@@ -28,16 +31,25 @@ def save_technology_sellers_to_db(self, unittype_id: int, level: int,
 
 
 def manage_science_tenders(self):
-    def compute_price(sellers, level=2):
-        sellers_num = len(sellers)
-        total_price = sum(sellers.values())
-        if self.company['id'] in sellers:
-            sellers_num -= 1
-            total_price -= sellers[self.company['id']]
-        if sellers_num:
-            return 0.9 * total_price / (sellers_num + 0.1)
+    def compute_price(sellers, level=2, active_players=None):
+        if not active_players:
+            active_players = []
+        if self.company['id'] not in active_players:
+            active_players.append(self.company['id'])
+        if sellers:
+            sellers_num = len(sellers)
+            price_sum = sum(sellers.values())
         else:
-            return (level - 1) * 10**8
+            sellers_num = 1
+            price_sum = (level - 1) * 10**8
+        for company_id in active_players:
+            if company_id in sellers:
+                sellers_num -= 1
+                price_sum -= sellers[company_id]
+        if not sellers_num:
+            sellers_num = 1
+            price_sum = sum(sellers.values()) / len(sellers)
+        return 0.9 * price_sum / (sellers_num + 0.1 * len(active_players))
     
     print('Managing science tenders:')
     for tender_id, tender in self.tenders(knowledge_area_kind='research').items():
@@ -61,7 +73,8 @@ def manage_science_tenders(self):
                 if price_sum > 2 * 10**9:
                     break
                 sellers = self.technology_sellers_med(unittype_id, level)
-                price = round(compute_price(sellers, level), 2)
+                active_players = [5526168, 6451449] if days_left <= duration else []
+                price = round(compute_price(sellers, level, active_players), 2)
                 self.set_technology_offer(unittype_id, level, price)
                 print(' ', tech['level'], '(%d)' % len(sellers), market_price, 
                       '->', price)

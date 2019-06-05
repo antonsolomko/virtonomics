@@ -40,6 +40,7 @@ def initialize_database(self):
         	date TEXT,
         	tender_id INT,
         	tender_day INT,
+            olc_days_left INT,
         	company_id INT,
         	price REAL,
         	impact BOOLEAN,
