@@ -48,6 +48,21 @@ def initialize_database(self):
             share REAL,
         	PRIMARY KEY (unittype_id, level, date, company_id)
         )''')
+    self.db.execute('''
+        CREATE VIEW IF NOT EXISTS tech_tender_active_players AS
+        SELECT t2.company_id AS company_id,
+        	COUNT(*) AS activity
+        FROM tech_offers AS t2 
+        LEFT JOIN tech_offers AS t1 ON t1.tender_id=t2.tender_id 
+        	AND t1.tender_day+1=t2.tender_day 
+        	AND t1.company_id=t2.company_id 
+        	AND t1.level=t2.level
+        WHERE t2.tender_day>0 
+        	AND (t1.price!=t2.price OR t1.price IS NULL)
+        	AND t2.date!=(SELECT MIN(date) FROM tech_offers)
+        GROUP BY t2.company_id
+        ORDER BY activity DESC
+        ''')
     self.conn.commit()
 
 

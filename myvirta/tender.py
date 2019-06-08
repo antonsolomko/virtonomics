@@ -76,7 +76,7 @@ def manage_science_tenders(self):
                 active_players = [5526168, 6451449] if days_left <= duration else []
                 price = round(compute_price(sellers, level, active_players), 2)
                 self.set_technology_offer(unittype_id, level, price)
-                print(' ', tech['level'], '(%d)' % len(sellers), market_price, 
+                print(' %d:' % tech['level'], market_price, '(%d)' % len(sellers), 
                       '->', price)
 
 

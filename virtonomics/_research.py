@@ -103,7 +103,7 @@ def hypothesis_stydy_expected_time(success_probability, reference_time=1,
     
     Arguments:
         success_probability (float): Success probability. Either percent
-            (0..100) or real value (0..1).
+            [1..100] or real value (0..1).
         reference_time (int): Number of days one stage lasts. Defaults to 1
         labs_num (int): Number of laboratories studying the same level.
 
@@ -111,7 +111,7 @@ def hypothesis_stydy_expected_time(success_probability, reference_time=1,
         Expected number of days needed to complete hypoteses study.
     """
     
-    if success_probability > 1:
+    if success_probability >= 1:
         success_probability /= 100
     if success_probability < 0 or success_probability > 1:
         raise ValueError('Probability should be in range 0..100')

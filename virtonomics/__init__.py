@@ -1,6 +1,9 @@
 import requests
 from lxml import html
 
+# Little extension of Session interface for code conciseness.
+# self.session.tree(url) will return the page tree structure,
+# in which we can locate elements by xpath
 requests.Session.tree = lambda self, url: html.fromstring(self.get(url).content)
 
 

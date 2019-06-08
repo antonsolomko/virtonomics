@@ -30,6 +30,8 @@ def manage_research(self):
                           if 365385 in self.indicators.get(unit_id, {})]
     for lab_id, lab in labs.items():
         lab = self.unit_summary(lab_id)
+        if not lab['project']:
+            continue
         unittype_id = lab['project'].get('unit_type_id', 0)
         level = lab['project'].get('level_developing', 0)
         stage = lab['project'].get('current_step', 0)

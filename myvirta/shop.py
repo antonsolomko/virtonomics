@@ -18,7 +18,7 @@ from .const import (
 def set_shops_advertisement(self, target_customers=None):
     if not target_customers:
         target_customers = TARGET_CUSTOMERS
-    for shop_id in self.units(name='*****'):
+    for shop_id in self.units(unit_class_kind='shop'):
         sections = max(1, self.unit_summary(shop_id)['section_count'])
         customers = target_customers // sections
         self.set_advertisement(shop_id, target_customers=customers, 
