@@ -278,7 +278,10 @@ def manage_shops(self, reference_shop_id=None):
                     new_price *= 1 + total_inc
                 elif target > 0:
                     # корректируем под требуемый объем продаж
-                    new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, MAX_PRICE_ADJUSTMENT)
+                    discount_factor = 1 if trade['sold'] > 0 else 2
+                    # снижаем цену быстрее, если ничего не продано
+                    new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
+                                         discount_factor * MAX_PRICE_ADJUSTMENT)
                 # Следим, чтобы цена не опускалась ниже распродажной
                 if new_price < trading_hall_sales[product_id]['price']:
                     new_price = trading_hall_sales[product_id]['price']
