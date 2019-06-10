@@ -19,12 +19,12 @@ def set_shops_advertisement(self, target_customers=None):
     if not target_customers:
         target_customers = TARGET_CUSTOMERS
     for shop_id, shop in self.units(unit_class_kind='shop').items():
-        if 'Конкурс Олигархов' in shop['name'] or '* ' in shop['name']:
+        if 'Конкурс Олигархов' in shop['name'] or shop['name'][:2] == '* ':
             continue
         sections = max(1, self.unit_summary(shop_id)['section_count'])
         customers = target_customers // sections
         self.set_advertisement(shop_id, target_customers=customers, 
-                               innovation=True)
+                               innovation=(shop['name']=='*****'))
 
 
 def set_shops_innovations(self, refresh=False):
