@@ -31,6 +31,7 @@ def manage_research(self):
     for lab_id, lab in labs.items():
         lab = self.unit_summary(lab_id)
         if not lab['project']:
+            free_labs.append(lab_id)
             continue
         unittype_id = lab['project'].get('unit_type_id', 0)
         level = lab['project'].get('level_developing', 0)
