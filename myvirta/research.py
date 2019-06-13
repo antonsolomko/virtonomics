@@ -3,7 +3,9 @@ from .const import MAX_TECHNOLOGIES
 
 def set_technologies(self):
     print('UPDATE TECHNOLOGIES')
-    for unit_id in self.units(unit_class_kind=list(MAX_TECHNOLOGIES.keys())):
+    for unit_id, unit in self.units(unit_class_kind=list(MAX_TECHNOLOGIES.keys())).items():
+        if unit['name'][:2] == 'G ':
+            continue
         unit = self.unit_summary(unit_id, refresh=True)
         level = unit.get('technology_level')
         if level:
