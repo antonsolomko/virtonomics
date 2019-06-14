@@ -310,3 +310,218 @@ def manage_shops(self, reference_shop_id=None):
                 self.product_move_to_warehouse(
                     shop_id, product_id, products[product_id]['supplier_id'], 
                     trade['current_stock'] - need)
+
+
+# Under development
+
+def _manage_shops(self):
+    shops = self.units(name='*****')
+    trades = {}
+    products = {}
+    for shop_id in shops:
+        for contract in self.supply_contracts(shop_id).values():
+            product_id = contract['product_id']
+            trades[shop_id, product_id] = {}
+            if product_id not in products:
+                products[product_id] = contract
+                contract['total_market_size'] = 0
+                contract['shipped'] = 0
+        for product_id, trade in self.trading_hall(shop_id, cache=True).items():
+            if (shop_id, product_id) not in trades:
+                # Обрабатываем только поставляемые товары 
+                continue
+            trades[shop_id, product_id] = trade
+            # Считаем объемы рынков
+            if trade['market_share'] > 0:
+                # Быстро оцениваем объем рынка исходя из доли и продаж
+                trade['market_size'] = trade['sold'] / trade['market_share']
+            else:
+                # Иначе читаем напрямую из розничного отчета по городу
+                city = self.cities[shops[shop_id]['city_id']]
+                geo = city['country_id'], city['region_id'], city['city_id']
+                trade['market_size'] = self.retail_metrics(product_id, geo)['local_market_size']
+            products[product_id]['total_market_size'] += trade['market_size']
+            products[product_id]['shipped'] += trade['purchase']
+            
+    # Считаем, сколько товаров суммарно отгружать
+    for product_id, product in products.items():
+        quantity = product['quantity_at_supplier_storage']
+        if quantity > product['shipped'] > 0:
+            # Если на складе слишком много товара, отгружаем среднее между имеющимся 
+            # количеством и вчерашний отгрузкой чтобы амортизировать колебания
+            product['quantity_to_distribute'] = (product['shipped'] + quantity) // 2
+        else:
+            product['quantity_to_distribute'] = quantity
+    
+    # Считаем долю магазинов, в которых сбыли весь товар
+    # чем выше данное отношение, тем больше поднимаем цену
+    clearance_count = {product_id: [] for product_id in products}
+    for (_, product_id), trade in trades.items():
+        clearance_count[product_id].append(
+                trade['stock'] == trade['purchase'] and trade['sold'] > 0)
+    for product_id, product in products.items():
+        product['clearance_rate'] = {product_id: sum(count) / max(1, len(count)) 
+                                     for (product_id, count) in clearance_count.items()}
+    
+    # Distribute sales
+    print('Distributing sales')
+    # Распределяем товары между магами
+    target_sales = {}
+    for product_id, product in products.items():
+        p_trades = {s: t for ((s, p), t) in trades.items() if p == product_id}
+        # Считаем среднюю цену сбыта
+        total_sold = sum(t['sold'] for t in p_trades.values())
+        if total_sold > 0:
+            # средняя цена
+            mean_price = sum(t['price'] * t['sold'] for t in p_trades.values()) / total_sold
+            log_mean_price = math.log(mean_price)
+            # стандартное отклоние цены от средней
+            std_dev = (sum(t['sold'] * (log(t['price'], log_mean_price) - log_mean_price)**2
+                           for t in p_trades.values()) / total_sold
+                      ) ** 0.5
+            # наклон сигмоиды
+            adjustment_rate =  MAX_SALES_ADJUSTMENT / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
+        else:
+            mean_price = None
+            adjustment_rate = MAX_SALES_ADJUSTMENT  # наклон сигмоиды
+        
+        # Считаем, сколько товара хотим сбывать в каждом магазине
+        target = {}
+        for shop_id, trade in p_trades.items():
+            if trade['sold']:
+                # Отталкиваемся от продаж, если таковые были
+                target_sale = trade['sold']
+                if trade['stock'] > trade['purchase'] and mean_price:
+                    # Если имеем точное значение спроса, корректируем 
+                    # пропорционально отклонению цены от средней
+                    target_sale *= sigmoid(log(trade['price'], log_mean_price) - log_mean_price + 1, 
+                                           adjustment_rate, MAX_SALES_ADJUSTMENT)
+            else:
+                # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
+                target_sale = (product['quantity_to_distribute'] 
+                               * trade['market_size']
+                               / product['total_market_size'])
+            target[shop_id] = (max(1, target_sale),
+                               max(1, MIN_MARKET_SHARE * trade['market_size']),
+                               max(1, MAX_MARKET_SHARE * trade['market_size'])
+                               )  # цель, нижняя и верхняя граница
+            
+        # Найденные объемы не обязательно суммируются в кол-во товара на складе
+        # Поэтому распределяем весь имеющийся товар пропорционально
+        
+        # Методом деления отрезка пополам ищем множитель, для которого
+        # суммарное стабжение совпадает с требуемым
+        def total(factor):
+            return sum(int(min(max(factor * t, mint), maxt)) 
+                       for (t, mint, maxt) in target.values())
+        
+        factor0 = 0
+        factor1 = max(maxt / t for (t, mint, maxt) in target.values())
+        if total(factor0) >= product['quantity_to_distribute']:
+            total_min = total(factor0)
+            for shop_id, trade in p_trades.items():
+                t, mint, maxt = target[shop_id]
+                target_sale = mint * product['quantity_to_distribute'] / total_min
+                trade['target_sale'] = int(target_sale)
+        elif total(factor1) <= product['quantity_to_distribute']:
+            for shop_id, trade in p_trades.items():
+                t, mint, maxt = target[shop_id]
+                trade['target_sale'] = int(maxt)
+        else:
+            total_sales0 = total(factor0)
+            total_sales1 = total(factor1)
+            while total_sales0 < total_sales1:
+                factor = (factor0 + factor1) / 2
+                if factor == factor0 or factor == factor1:
+                    break
+                if total(factor) < product['quantity_to_distribute']:
+                    factor0 = factor
+                    total_sales0 = total(factor0)
+                else:
+                    factor1 = factor
+                    total_sales1 = total(factor1)
+            error0 = abs(total(factor0) - product['quantity_to_distribute'])
+            error1 = abs(total(factor1) - product['quantity_to_distribute'])
+            factor = factor0 if error0 <= error1 else factor1
+            for shop_id, trade in p_trades.items():
+                t, mint, maxt = target[shop_id]
+                target_sale = min(max(factor * t, mint), maxt)
+                trade['target_sale'] = int(target_sale)
+    
+    print('Managing shops')
+    # Корректируем магазины
+    for shop_id in shops:
+        print(shop_id)
+        s_trades = {p: t for ((s, p), t) in trades.items() if s == shop_id}
+        
+        # Снабжение
+        orders = {}
+        for contract in self.supply_contracts(shop_id).values():
+            if contract['product_id'] not in products:
+                continue
+            # заказываем сколько распределили
+            orders[contract['offer_id']] = {
+                'quantity': target_sales[contract['product_id']][shop_id], 
+                'max_increase': 0
+                }
+        self.set_supply_contracts(shop_id, orders)
+        
+        # Update prices
+        # Сбрасываем цены в ноль
+        offers = {t['ids']: 0 for t in trading_halls[shop_id].values()}
+        self.set_shop_sale_prices(shop_id, offers)
+        # Устанавливаем распродажные цены
+        self.set_shop_sales_prices(shop_id)
+        # Считываем торговый зал
+        trading_hall_sales = self.trading_hall(shop_id, cache=False)
+        offers = {}
+        for product_id, trade in trading_halls[shop_id].items():
+            # на случай, если уже вывезли часть товара, сохраняем текущее значение
+            trade['current_stock'] = trading_hall_sales[product_id]['stock']  
+            if product_id not in products:
+                new_price = trade['price']  # просто возвращаем старую цену
+            elif trade['price'] > 0:
+                new_price = trade['price']
+                target = min(target_sales[product_id][shop_id], 
+                             trade['current_stock'] * TARGET_STOCK_RATIO)
+                if trade['stock'] == trade['purchase'] and target > 0:
+                    # если продан весь товар, повышаем цену
+                    clearance_factor = 0.4 + 9.6 * clearance_rate[product_id]**1.5
+                    stock_ratio = trade['sold'] / target
+                    stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
+                    total_inc = MAX_PRICE_ADJUSTMENT * stock_factor * clearance_factor
+                    new_price *= 1 + total_inc
+                elif target > 0:
+                    # корректируем под требуемый объем продаж
+                    discount_factor = 1 if trade['sold'] > 0 else 2
+                    # снижаем цену быстрее, если ничего не продано
+                    new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
+                                         discount_factor * MAX_PRICE_ADJUSTMENT)
+                # Следим, чтобы цена не опускалась ниже распродажной
+                if new_price < trading_hall_sales[product_id]['price']:
+                    new_price = trading_hall_sales[product_id]['price']
+            else:
+                # Цена по умолчанию для новых продуктов
+                new_price = SALES_PRICE_FACTOR * trading_hall_sales[product_id]['price']
+            offers[trade['ids']] = round(new_price, 2)
+        self.set_shop_sale_prices(shop_id, offers)
+        
+        # Move surpluses back to warehouse
+        #Вывозим излишки товара обратно на склад
+        for product_id, trade in trading_halls[shop_id].items():
+            if product_id not in products:
+                continue
+            market_size = markets[product_id][shop['city_id']]
+            # оставляем двухдневный запас или максимальную долю рынка 
+            #(немного больше максимальной доли рынка, чтобы избежать частых опустошений)
+            if trade['sold'] > 0:
+                # сглаживаем между днями
+                need = target_sales[product_id][shop_id] + trade['sold']
+            else:
+                need = 2 * target_sales[product_id][shop_id]
+            need = min(need, MAX_MARKET_SHARE_STOCK * market_size)
+            # лишнее вывозим
+            if trade['current_stock'] > need:
+                self.product_move_to_warehouse(
+                    shop_id, product_id, products[product_id]['supplier_id'], 
+                    trade['current_stock'] - need)
