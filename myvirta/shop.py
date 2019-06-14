@@ -314,7 +314,7 @@ def manage_shops(self, reference_shop_id=None):
 
 # Under development
 
-def _manage_shops(self):
+def manage_shops_new(self):
     shops = self.units(name='*****')
     trades = {}
     products = {}
@@ -360,13 +360,12 @@ def _manage_shops(self):
         clearance_count[product_id].append(
                 trade['stock'] == trade['purchase'] and trade['sold'] > 0)
     for product_id, product in products.items():
-        product['clearance_rate'] = {product_id: sum(count) / max(1, len(count)) 
-                                     for (product_id, count) in clearance_count.items()}
+        count = clearance_count[product_id]
+        product['clearance_rate'] = sum(count) / max(1, len(count))
     
     # Distribute sales
     print('Distributing sales')
-    # Распределяем товары между магами
-    target_sales = {}
+    # Распределяем товары между магазинами
     for product_id, product in products.items():
         p_trades = {s: t for ((s, p), t) in trades.items() if p == product_id}
         # Считаем среднюю цену сбыта
@@ -456,72 +455,64 @@ def _manage_shops(self):
         
         # Снабжение
         orders = {}
-        for contract in self.supply_contracts(shop_id).values():
-            if contract['product_id'] not in products:
-                continue
-            # заказываем сколько распределили
-            orders[contract['offer_id']] = {
-                'quantity': target_sales[contract['product_id']][shop_id], 
+        for product_id, trade in s_trades.items():
+            orders[products[product_id]['offer_id']] = {
+                'quantity': trade['target_sale'], 
                 'max_increase': 0
                 }
         self.set_supply_contracts(shop_id, orders)
         
-        # Update prices
-        # Сбрасываем цены в ноль
-        offers = {t['ids']: 0 for t in trading_halls[shop_id].values()}
+        # Выставляем новые цены
+        # Сбрасываем цены в ноль, чтобы узнать распродажные цены
+        offers = {t['ids']: 0 for t in s_trades.values()}
         self.set_shop_sale_prices(shop_id, offers)
         # Устанавливаем распродажные цены
         self.set_shop_sales_prices(shop_id)
         # Считываем торговый зал
         trading_hall_sales = self.trading_hall(shop_id, cache=False)
         offers = {}
-        for product_id, trade in trading_halls[shop_id].items():
+        for product_id, trade in s_trades.items():
+            product = products[product_id]
             # на случай, если уже вывезли часть товара, сохраняем текущее значение
-            trade['current_stock'] = trading_hall_sales[product_id]['stock']  
-            if product_id not in products:
-                new_price = trade['price']  # просто возвращаем старую цену
-            elif trade['price'] > 0:
+            trade['current_stock'] = trading_hall_sales[product_id]['stock']
+            trade['sale_price'] = trading_hall_sales[product_id]['price']
+            if trade['price'] > 0:
                 new_price = trade['price']
-                target = min(target_sales[product_id][shop_id], 
-                             trade['current_stock'] * TARGET_STOCK_RATIO)
+                target = min(trade['target_sale'], trade['current_stock'] * TARGET_STOCK_RATIO)
                 if trade['stock'] == trade['purchase'] and target > 0:
                     # если продан весь товар, повышаем цену
-                    clearance_factor = 0.4 + 9.6 * clearance_rate[product_id]**1.5
+                    clearance_factor = 0.4 + 9.6 * product['clearance_rate']**1.5
                     stock_ratio = trade['sold'] / target
                     stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
                     total_inc = MAX_PRICE_ADJUSTMENT * stock_factor * clearance_factor
                     new_price *= 1 + total_inc
                 elif target > 0:
                     # корректируем под требуемый объем продаж
-                    discount_factor = 1 if trade['sold'] > 0 else 2
                     # снижаем цену быстрее, если ничего не продано
+                    discount_factor = 1 if trade['sold'] > 0 else 2
                     new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
                                          discount_factor * MAX_PRICE_ADJUSTMENT)
                 # Следим, чтобы цена не опускалась ниже распродажной
-                if new_price < trading_hall_sales[product_id]['price']:
-                    new_price = trading_hall_sales[product_id]['price']
-            else:
+                if new_price < trade['sale_price']:
+                    new_price = trade['sale_price']
+            else:  # trade['price'] == 0
                 # Цена по умолчанию для новых продуктов
-                new_price = SALES_PRICE_FACTOR * trading_hall_sales[product_id]['price']
+                new_price = SALES_PRICE_FACTOR * trade['sale_price']
             offers[trade['ids']] = round(new_price, 2)
         self.set_shop_sale_prices(shop_id, offers)
         
-        # Move surpluses back to warehouse
-        #Вывозим излишки товара обратно на склад
-        for product_id, trade in trading_halls[shop_id].items():
-            if product_id not in products:
-                continue
-            market_size = markets[product_id][shop['city_id']]
-            # оставляем двухдневный запас или максимальную долю рынка 
-            #(немного больше максимальной доли рынка, чтобы избежать частых опустошений)
+        # Вывозим излишки товара обратно на склад
+        for product_id, trade in s_trades.items():
+            # Оставляем двухдневный запас или максимальную долю рынка 
+            # (немного больше, чтобы избежать частых распродаж)
             if trade['sold'] > 0:
                 # сглаживаем между днями
-                need = target_sales[product_id][shop_id] + trade['sold']
+                need = trade['target_sale'] + trade['sold']
             else:
-                need = 2 * target_sales[product_id][shop_id]
-            need = min(need, MAX_MARKET_SHARE_STOCK * market_size)
+                need = 2 * trade['target_sale']
+            need = min(need, MAX_MARKET_SHARE_STOCK * trade['market_size'])
             # лишнее вывозим
             if trade['current_stock'] > need:
-                self.product_move_to_warehouse(
-                    shop_id, product_id, products[product_id]['supplier_id'], 
-                    trade['current_stock'] - need)
+                self.product_move_to_warehouse(shop_id, product_id, 
+                                               products[product_id]['supplier_id'], 
+                                               trade['current_stock'] - need)

@@ -48,6 +48,7 @@ class MyVirta(Virta):
         propagate_contracts,
         _get_retail_terget_volumes,
         manage_shops,
+        manage_shops_new,
         )
     from .service import manage_restaurants
     from .employee import set_max_employee_level_all
