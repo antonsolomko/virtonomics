@@ -90,7 +90,7 @@ def _get_retail_terget_volumes(self):
     return result
 
 
-def manage_shops(self, reference_shop_id=None):
+def manage_shops_old(self, reference_shop_id=None):
     if not reference_shop_id:
         reference_shop_id = REFERENCE_SHOP_ID
     shops = self.units(name='*****')
@@ -312,9 +312,9 @@ def manage_shops(self, reference_shop_id=None):
                     trade['current_stock'] - need)
 
 
-# Under development
+# Replacement for an old method
 
-def manage_shops_new(self):
+def manage_shops(self):
     shops = self.units(name='*****')
     trades = {}
     products = {}
