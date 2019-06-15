@@ -518,9 +518,12 @@ def manage_shops(self):
                     total_inc = MAX_PRICE_ADJUSTMENT * stock_factor * clearance_factor
                     new_price *= 1 + total_inc
                 elif target > 0:
+                    if trade['sold'] == 0 and trade['stock'] > trade['purchase']:
+                        # снижаем цену быстрее, если ничего не продано
+                        discount_factor = 2
+                    else:
+                        discount_factor = 1
                     # корректируем под требуемый объем продаж
-                    # снижаем цену быстрее, если ничего не продано
-                    discount_factor = 1 if trade['sold'] > 0 else 2
                     new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
                                          discount_factor * MAX_PRICE_ADJUSTMENT)
                 # Следим, чтобы цена не опускалась ниже распродажной
