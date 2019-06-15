@@ -101,6 +101,7 @@ def distribute_shop_employees(self, units, total_number=None, competence=None, r
                          for unit_id, unit in units.items()
                          if not unit.get('on_holiday', True)}
     total_required = sum(employee_required.values())
+    print(total_required)
     if not total_required:
         return
     factor = total_number / total_required

@@ -42,6 +42,7 @@ class MyVirta(Virta):
     from .shop import (
         set_shop_advertisement,
         set_shops_advertisement,
+        set_shop_innovations,
         set_shops_innovations,
         distribute_shops_employees,
         set_shop_default_prices,
@@ -81,6 +82,14 @@ class MyVirta(Virta):
             'shop_advertisement': 'Партнёрский договор с рекламным агентством',
             'shop_parking': 'Автомобильная парковка',
             'shop_retail': 'Консалтинг мирового лидера ритейла',
+            'Автомобильные товары': 'Автосалон',
+            'Бакалея': 'Бакалейная лавка',
+            'Продукты питания': 'Продуктовая лавка',
+            'Одежда и обувь': 'Бутик одежды',
+            'Промышленные товары': 'Миллион мелочей',
+            'Товары для дома': 'Все для дома',
+            'Ювелирные изделия': 'Ювелирный салон',
+            'Электроника': 'Электронный рай',
             }
         if innovation_name in alternative_names:
             innovation_name = alternative_names[innovation_name]

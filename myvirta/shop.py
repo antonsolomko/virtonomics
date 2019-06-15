@@ -2,6 +2,7 @@ import math
 from .math import sigmoid, log
 
 from .const import (
+    MANAGED_SHOPS_NAMES,  # ('*****',)
     REFERENCE_SHOP_ID,  # эталонный магазин, из которого копируем ассортимент
     TARGET_CUSTOMERS,  # целевое количество посетителей
     MIN_MARKET_SHARE,  # минимальная доля рынка
@@ -15,7 +16,9 @@ from .const import (
     )
 
 
-def set_shop_advertisement(self, shop_id, target_customers, innovation):
+def set_shop_advertisement(self, shop_id, target_customers=None, innovation=False):
+    if not target_customers:
+        target_customers = TARGET_CUSTOMERS
     sections = max(1, self.unit_summary(shop_id)['section_count'])
     customers = target_customers // sections
     return self.set_advertisement(shop_id, target_customers=customers, 
@@ -23,22 +26,46 @@ def set_shop_advertisement(self, shop_id, target_customers, innovation):
 
 
 def set_shops_advertisement(self, target_customers=None):
-    if not target_customers:
-        target_customers = TARGET_CUSTOMERS
     for shop_id, shop in self.units(unit_class_kind='shop').items():
         if 'Конкурс Олигархов' not in shop['name'] and shop['name'][:2] != '* ':
-            self.set_shop_advertisement(shop_id, target_customers, shop['name']=='*****')
+            self.set_shop_advertisement(shop_id, target_customers, 
+                                        innovation=shop['name'] in MANAGED_SHOPS_NAMES)
+
+
+def set_shop_innovations(self, shop_id, advertisement=True, parking=False, retail=True, refresh=False):
+    print(shop_id)
+    if advertisement:
+        print('  advertisement')
+        self.set_innovation(shop_id, 'shop_advertisement', refresh=refresh)
+    elif parking:
+        print('  parking')
+        self.set_innovation(shop_id, 'shop_parking', refresh=refresh)
+    
+    if retail:
+        shop = self.unit_summary(shop_id)
+        if shop['section_count'] > 1:
+            print('  ratail all')
+            self.set_innovation(shop_id, 'shop_retail', refresh=refresh)
+        elif shop['section_count'] == 1:
+            trading_hall = self.trading_hall(shop_id)
+            if trading_hall:
+                category = self.goods[next(iter(trading_hall))]['product_category_name']
+                print('  ' + category)
+                self.set_innovation(shop_id, category, refresh=refresh)
 
 
 def set_shops_innovations(self, refresh=False):
-    for shop_id in self.units(name='*****'):
-        self.set_innovation(shop_id, 'shop_advertisement', refresh=refresh)
-        self.set_innovation(shop_id, 'shop_retail', refresh=refresh)
+    print('SETTING SHOPS INNOVATIONS:')
+    for shop_id, shop in self.units(unit_class_kind='shop').items():
+        self.set_shop_innovations(shop_id, 
+                                  advertisement=shop['name'] in MANAGED_SHOPS_NAMES, 
+                                  retail=shop['name'] in MANAGED_SHOPS_NAMES, 
+                                  refresh=refresh)
 
 
 def distribute_shops_employees(self):
-    units = [unit_id for unit_id, unit in self.units(unit_class_kind='shop').items()
-             if unit['name'] == '*****' or unit['name'][0] != '*']
+    units = [unit_id for (unit_id, unit) in self.units(unit_class_kind='shop').items()
+             if unit['name'] in MANAGED_SHOPS_NAMES or unit['name'][:1] != '*']
     return self.distribute_shop_employees(units, reserve=100)
 
 
@@ -58,7 +85,7 @@ def set_shop_default_prices(self, shop_id, factor=2):
 
 
 def set_shops_default_prices(self, factor=2):
-    for shop_id in self.units(name='*****'):
+    for shop_id in self.units(name=MANAGED_SHOPS_NAMES):
         self.set_shop_default_prices(shop_id)
 
 
@@ -66,7 +93,7 @@ def propagate_contracts(self, reference_shop_id=None):
     print('Copying contracts')
     if not reference_shop_id:
         reference_shop_id = REFERENCE_SHOP_ID
-    shops = self.units(name='*****')
+    shops = self.units(name=MANAGED_SHOPS_NAMES)
     ref_contracts = self.supply_contracts(reference_shop_id)  # вытягиваем из ведущего магазина список контрактов
     for shop_id in shops:
         print(shop_id)
@@ -96,7 +123,7 @@ def _get_retail_terget_volumes(self):
 def manage_shops_old(self, reference_shop_id=None):
     if not reference_shop_id:
         reference_shop_id = REFERENCE_SHOP_ID
-    shops = self.units(name='*****')
+    shops = self.units(name=MANAGED_SHOPS_NAMES)
     # Вытягиваем из ведущего магазина список товаров, которыми торгуем
     products = {p['product_id']: p 
                 for p in self.supply_contracts(reference_shop_id).values()
@@ -318,7 +345,7 @@ def manage_shops_old(self, reference_shop_id=None):
 # Replacement for an old method
 
 def manage_shops(self):
-    shops = self.units(name='*****')
+    shops = self.units(name=MANAGED_SHOPS_NAMES)
     trades = {}
     products = {}
     for shop_id in shops:
@@ -399,10 +426,11 @@ def manage_shops(self):
                     target_sale *= sigmoid(log(trade['price'], log_mean_price) - log_mean_price + 1, 
                                            adjustment_rate, MAX_SALES_ADJUSTMENT)
             else:
-                # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
-                target_sale = (product['quantity_to_distribute'] 
-                               * trade['market_size']
-                               / product['total_market_size'])
+                if trade['stock'] == trade['purchase'] > 0:
+                    target_sale = trade['purchase']
+                else:
+                    # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
+                    target_sale = (product['quantity_to_distribute'] * trade['market_size'] / product['total_market_size'])
             target[shop_id] = (max(1, target_sale),
                                max(1, MIN_MARKET_SHARE * trade['market_size']),
                                max(1, MAX_MARKET_SHARE * trade['market_size'])
@@ -534,9 +562,7 @@ def split_shop(self, shop_id, categories=None):
     new_shop_id = self.create_unit('Магазин', shop['district_name'], '100 кв. м', 
                                    shop['name'], city=shop['city_id'])
     self.resize_unit(new_shop_id, size=shop['size'])
-    self.set_innovation(new_shop_id, 'shop_advertisement')
-    self.set_innovation(new_shop_id, 'shop_retail')
-    self.set_advertisement(new_shop_id, cost=10**7)
+    self.set_advertisement(new_shop_id, cost=shop['advertising_cost'])
     warehouses = {}  # склады для вывоза продукции
     for contract in supply_contracts.values():
         # копируем контракты в новый магазин
@@ -559,3 +585,8 @@ def split_shop(self, shop_id, categories=None):
     new_trading_hall = self.trading_hall(new_shop_id)
     offers = {t['ids']: trading_hall[p]['price'] for (p, t) in new_trading_hall.items()}
     self.set_shop_sale_prices(new_shop_id, offers)
+    # Инновации
+    self.set_shop_innovations(shop_id, refresh=True)
+    self.set_shop_innovations(new_shop_id)
+    # Меньше отделделов - больше посетителей
+    self.set_shop_advertisement(shop_id, innovation=True)

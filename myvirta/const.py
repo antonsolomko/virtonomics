@@ -1,3 +1,4 @@
+MANAGED_SHOPS_NAMES = ('*****',)
 TARGET_CUSTOMERS = 1620000
 REFERENCE_SHOP_ID = 7559926
 MIN_MARKET_SHARE = 0.01  # минимальная доля рынка
@@ -5,7 +6,7 @@ MAX_MARKET_SHARE = 0.4  # максимальная доля рынка
 MAX_MARKET_SHARE_STOCK = 0.8  # максимальный запас относительно рынка
 MAX_SALES_ADJUSTMENT = 0.1  # максимальных шаг изменения продаж
 MAX_PRICE_ADJUSTMENT = 0.02  # максимальных шаг изменения цены
-ELASTICITY = 20  # эластичность спроса
+ELASTICITY = 25  # эластичность спроса
 SALES_PRICE_FACTOR = 2  # множитель к распродажной цене для новых товаров 
 TARGET_STOCK_RATIO = 0.8  # 
 
