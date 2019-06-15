@@ -561,6 +561,9 @@ def split_shop(self, shop_id, categories=None):
         print('No department(s) %s' % categories)
         return
     shop = self.unit_summary(shop_id)
+    if shop['section_count'] <= 1:
+        print('One or no department, nothing to split')
+        return
     # Город, район, размер и имя копируем из старого магазина
     new_shop_id = self.create_unit('Магазин', shop['district_name'], '100 кв. м', 
                                    shop['name'], city=shop['city_id'])
