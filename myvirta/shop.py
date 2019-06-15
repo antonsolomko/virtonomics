@@ -15,16 +15,19 @@ from .const import (
     )
 
 
+def set_shop_advertisement(self, shop_id, target_customers, innovation):
+    sections = max(1, self.unit_summary(shop_id)['section_count'])
+    customers = target_customers // sections
+    return self.set_advertisement(shop_id, target_customers=customers, 
+                                  innovation=innovation)
+
+
 def set_shops_advertisement(self, target_customers=None):
     if not target_customers:
         target_customers = TARGET_CUSTOMERS
     for shop_id, shop in self.units(unit_class_kind='shop').items():
-        if 'Конкурс Олигархов' in shop['name'] or shop['name'][:2] == '* ':
-            continue
-        sections = max(1, self.unit_summary(shop_id)['section_count'])
-        customers = target_customers // sections
-        self.set_advertisement(shop_id, target_customers=customers, 
-                               innovation=(shop['name']=='*****'))
+        if 'Конкурс Олигархов' not in shop['name'] and shop['name'][:2] != '* ':
+            self.set_shop_advertisement(shop_id, target_customers, shop['name']=='*****')
 
 
 def set_shops_innovations(self, refresh=False):
@@ -516,3 +519,43 @@ def manage_shops(self):
                 self.product_move_to_warehouse(shop_id, product_id, 
                                                products[product_id]['supplier_id'], 
                                                trade['current_stock'] - need)
+
+
+def split_shop(self, shop_id, categories=None):
+    if not categories:
+        categories = ['Продукты питания']
+    # только контракты на вывозимые товары
+    supply_contracts = self.supply_contracts(shop_id)(shop_goods_category_name=categories)
+    if not supply_contracts:
+        print('No department(s) %s' % categories)
+        return
+    shop = self.unit_summary(shop_id)
+    # Город, район, размер и имя копируем из старого магазина
+    new_shop_id = self.create_unit('Магазин', shop['district_name'], '100 кв. м', 
+                                   shop['name'], city=shop['city_id'])
+    self.resize_unit(new_shop_id, size=shop['size'])
+    self.set_innovation(new_shop_id, 'shop_advertisement')
+    self.set_innovation(new_shop_id, 'shop_retail')
+    self.set_advertisement(new_shop_id, cost=10**7)
+    warehouses = {}  # склады для вывоза продукции
+    for contract in supply_contracts.values():
+        # копируем контракты в новый магазин
+        self.create_supply_contract(new_shop_id, contract['offer_id'], 
+                                    amount=contract['party_quantity'], max_increase=0)
+        # Запоминаем, куда вывозить продукцию из старого магазина
+        warehouses[contract['product_id']] = contract['supplier_id']
+    # Разорвать контракты в старом магазине
+    self.destroy_supply_contract(shop_id, list(supply_contracts.keys()))
+    goods = list(self.goods(product_category_name=categories).keys())  # id всех товаров вывозимых категорий
+    trading_hall = self.trading_hall(shop_id)(product_id=goods)  # отделы торгового зала, которые перевощим
+    # Вывоз продукции на склад
+    for product_id, trade in trading_hall.items():
+        if product_id in warehouses:
+            self.product_move_to_warehouse(shop_id, product_id, warehouses[product_id], trade['stock'])
+    # Ликвидировать остатки товара
+    ids = [trade['ids'] for trade in trading_hall.values()]
+    self.product_terminate(shop_id, ids)
+    # Копируем цены
+    new_trading_hall = self.trading_hall(new_shop_id)
+    offers = {t['ids']: trading_hall[p]['price'] for (p, t) in new_trading_hall.items()}
+    self.set_shop_sale_prices(new_shop_id, offers)

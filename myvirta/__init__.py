@@ -40,6 +40,7 @@ class MyVirta(Virta):
         )
     from .message import read_messages
     from .shop import (
+        set_shop_advertisement,
         set_shops_advertisement,
         set_shops_innovations,
         distribute_shops_employees,
@@ -48,6 +49,7 @@ class MyVirta(Virta):
         propagate_contracts,
         _get_retail_terget_volumes,
         manage_shops,
+        split_shop,
         )
     from .service import manage_restaurants
     from .employee import set_max_employee_level_all

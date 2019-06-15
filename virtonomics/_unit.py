@@ -271,7 +271,7 @@ def create_unit(self, *args, **kwargs):
         name: 
         
     Returns:
-        True if unit was created, None otherwise
+        Unit id if unit was created, None otherwise
         
     Example:
         v.create_unit('Ресторан', 'Окраина', 'Кофейня', '500 кв. м', 
@@ -347,7 +347,7 @@ def create_unit(self, *args, **kwargs):
             }
         url = self.session.post(url, data=data).url
     print('Unit created')
-    return True
+    return int(url.split('/')[-1])
 
 
 def sale_unit(self, unit_id, price=None, factor=1):
