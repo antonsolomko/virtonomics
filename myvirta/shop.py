@@ -510,22 +510,23 @@ def manage_shops(self):
             if trade['price'] > 0:
                 new_price = trade['price']
                 target = min(trade['target_sale'], trade['current_stock'] * TARGET_STOCK_RATIO)
-                if trade['stock'] == trade['purchase'] and target > 0:
-                    # если продан весь товар, повышаем цену
-                    clearance_factor = 0.4 + 9.6 * product['clearance_rate']**1.5
-                    stock_ratio = trade['sold'] / target
-                    stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
-                    total_inc = MAX_PRICE_ADJUSTMENT * stock_factor * clearance_factor
-                    new_price *= 1 + total_inc
-                elif target > 0:
-                    if trade['sold'] == 0 and trade['stock'] > trade['purchase']:
-                        # снижаем цену быстрее, если ничего не продано
-                        discount_factor = 2
-                    else:
-                        discount_factor = 1
-                    # корректируем под требуемый объем продаж
-                    new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
-                                         discount_factor * MAX_PRICE_ADJUSTMENT)
+                if target > 0:
+                    if trade['stock'] == trade['purchase'] and trade['sold'] > 0:
+                        # если распродан весь товар, повышаем цену
+                        clearance_factor = 0.4 + 9.6 * product['clearance_rate']**1.5
+                        stock_ratio = trade['sold'] / target
+                        stock_factor = 2 * math.atan(20 * (stock_ratio - 1)) / math.pi + 1
+                        total_inc = MAX_PRICE_ADJUSTMENT * stock_factor * clearance_factor
+                        new_price *= 1 + total_inc
+                    elif trade['stock'] > trade['purchase']:
+                        if trade['sold'] == 0:
+                            # снижаем цену быстрее, если ничего не продано
+                            discount_factor = 2
+                        else:
+                            discount_factor = 1
+                        # корректируем под требуемый объем продаж
+                        new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
+                                             discount_factor * MAX_PRICE_ADJUSTMENT)
                 # Следим, чтобы цена не опускалась ниже распродажной
                 if new_price < trade['sale_price']:
                     new_price = trade['sale_price']
@@ -568,7 +569,7 @@ def split_shop(self, shop_id, categories=None):
     new_shop_id = self.create_unit('Магазин', shop['district_name'], '100 кв. м', 
                                    shop['name'], city=shop['city_id'])
     self.resize_unit(new_shop_id, size=shop['size'])
-    self.set_advertisement(new_shop_id, cost=shop['advertising_cost'])
+    self.set_advertisement(new_shop_id, target_fame=shop['fame'])
     warehouses = {}  # склады для вывоза продукции
     for contract in supply_contracts.values():
         # копируем контракты в новый магазин
@@ -592,6 +593,7 @@ def split_shop(self, shop_id, categories=None):
     offers = {t['ids']: trading_hall[p]['price'] for (p, t) in new_trading_hall.items()}
     self.set_shop_sale_prices(new_shop_id, offers)
     self.refresh(shop_id)
+    self.refresh(new_shop_id)
     # Инновации
     self.set_shop_innovations(shop_id, refresh=True)
     self.set_shop_innovations(new_shop_id)
