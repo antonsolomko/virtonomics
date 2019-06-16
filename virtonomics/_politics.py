@@ -105,6 +105,12 @@ def city_money_project(self, city_id, project_name):
     return self.session.get(url)
 
 
+def city_retail_project(self, city_id, category_name):
+    categories = {g['product_category_name']: g['product_category_id'] for g in self.goods.values()}
+    url = self.domain_ext + 'politics/retail_project/%s/%s' % (city_id, categories[category_name])
+    return self.session.get(url)
+
+
 def city_change_rent(self, city_id, unit_class, rent_up=False):
     """Change rent price.
     

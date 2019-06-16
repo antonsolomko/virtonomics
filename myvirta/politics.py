@@ -68,6 +68,10 @@ def manage_cities(self):
         self.city_change_rent(city['id'], 'warehouse', rent_up=not is_industrial)
         self.city_change_rent(city['id'], 'villa', rent_up=True)
         
+        if city['population'] > 500000 and days_to_election > 13:
+            self.city_retail_project(city['id'], 'Продукты питания')
+            self.city_retail_project(city['id'], 'Бакалея')
+        
         if days_to_election == 0:
             shops = self.units(city_id=city['id'], unit_class_kind='shop')
             for shop_id in shops:

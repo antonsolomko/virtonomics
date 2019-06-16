@@ -592,10 +592,12 @@ def split_shop(self, shop_id, categories=None):
     new_trading_hall = self.trading_hall(new_shop_id)
     offers = {t['ids']: trading_hall[p]['price'] for (p, t) in new_trading_hall.items()}
     self.set_shop_sale_prices(new_shop_id, offers)
-    self.refresh(shop_id)
-    self.refresh(new_shop_id)
+    # Refresh shops info
+    self.unit_summary(shop_id, refresh=True)
+    self.unit_summary(new_shop_id, refresh=True)
     # Инновации
     self.set_shop_innovations(shop_id, refresh=True)
     self.set_shop_innovations(new_shop_id)
     # Меньше отделделов - больше посетителей
     self.set_shop_advertisement(shop_id, innovation=True)
+    return new_shop_id

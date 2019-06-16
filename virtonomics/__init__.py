@@ -180,6 +180,7 @@ class Virta:
         days_to_election,  # 
         city_change_council_tax,  # 
         city_money_project,  # 
+        city_retail_project,  # 
         city_change_rent,  # 
         region_money_project,  # 
         country_money_project,  # 

@@ -346,8 +346,9 @@ def create_unit(self, *args, **kwargs):
             'next': 1 
             }
         url = self.session.post(url, data=data).url
-    print('Unit created')
-    return int(url.split('/')[-1])
+    unit_id = int(url.split('/')[-1])
+    print('Unit created:', unit_id)
+    return unit_id
 
 
 def sale_unit(self, unit_id, price=None, factor=1):
