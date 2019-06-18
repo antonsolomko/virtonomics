@@ -63,10 +63,10 @@ def set_shops_innovations(self, refresh=False):
                                   refresh=refresh)
 
 
-def distribute_shops_employees(self):
+def distribute_shops_employees(self, reserve=100):
     units = [unit_id for (unit_id, unit) in self.units(unit_class_kind='shop').items()
              if unit['name'] in MANAGED_SHOPS_NAMES or unit['name'][:1] != '*']
-    return self.distribute_shop_employees(units, reserve=100)
+    return self.distribute_shop_employees(units, reserve=reserve)
 
 
 def set_shop_default_prices(self, shop_id, factor=2):
