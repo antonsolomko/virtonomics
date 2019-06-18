@@ -1,4 +1,4 @@
-from .const import ECO_FACTORS, INDUSTRIAL_CITIES, SUPPORTED_PARTIES
+from .const import ECO_FACTORS, INDUSTRIAL_CITIES, SUPPORTED_PARTIES, MANAGED_SHOPS_NAMES
 
 
 def agitation(self):
@@ -72,11 +72,13 @@ def manage_cities(self):
             self.city_retail_project(city['id'], 'Продукты питания')
             self.city_retail_project(city['id'], 'Бакалея')
         
-        if days_to_election == 0:
+        # Removed
+        if False and days_to_election == 0:
             shops = self.units(city_id=city['id'], unit_class_kind='shop')
-            for shop_id in shops:
-                self.set_innovation(shop_id, 'shop_retail')
-                self.set_innovation(shop_id, 'shop_parking')
+            for shop_id, shop in shops.items():
+                if shop['name'] not in MANAGED_SHOPS_NAMES:
+                    self.set_innovation(shop_id, 'shop_retail')
+                    self.set_innovation(shop_id, 'shop_parking')
 
 
 def region_money_projects(self, country_id, project_names):
