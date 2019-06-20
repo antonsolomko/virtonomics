@@ -2,7 +2,7 @@
 def messages(self):
     url = self.domain_ext + 'common/util/setpaging/usermain/messageIncomingList/400'
     self.session.get(url)
-    url = self.domain_ext + 'user/privat/persondata/message/system'
+    url = self.domain_ext + 'user/privat/persondata/message/system?old'
     page = self.session.tree(url)
     xp = '//tr[@id="newmesg"]'
     result = {}
