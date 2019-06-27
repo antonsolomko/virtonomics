@@ -32,7 +32,8 @@ def set_shops_advertisement(self, target_customers=None):
                                         innovation=shop['name'] in MANAGED_SHOPS_NAMES)
 
 
-def set_shop_innovations(self, shop_id, advertisement=True, parking=False, retail=True, refresh=False):
+def set_shop_innovations(self, shop_id, advertisement=True, parking=False, 
+                         retail=True, accounting=False, refresh=False):
     print(shop_id)
     if advertisement:
         print('  advertisement')
@@ -52,6 +53,10 @@ def set_shop_innovations(self, shop_id, advertisement=True, parking=False, retai
                 category = self.goods[next(iter(trading_hall))]['product_category_name']
                 print('  ' + category)
                 self.set_innovation(shop_id, category, refresh=refresh)
+    
+    if accounting:
+        print('  accounting')
+        self.set_innovation(shop_id, 'accounting', refresh=refresh)
 
 
 def set_shops_innovations(self, refresh=False):
@@ -60,6 +65,7 @@ def set_shops_innovations(self, refresh=False):
         self.set_shop_innovations(shop_id, 
                                   advertisement=shop['name'] in MANAGED_SHOPS_NAMES, 
                                   retail=shop['name'] in MANAGED_SHOPS_NAMES, 
+                                  accounting=True,
                                   refresh=refresh)
 
 
