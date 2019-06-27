@@ -1,4 +1,4 @@
-MANAGED_SHOPS_NAMES = ('*****',)
+MANAGED_SHOPS_NAMES = ('*****', 'Мухосранск')
 TARGET_CUSTOMERS = 1620000
 REFERENCE_SHOP_ID = 7559926
 MIN_MARKET_SHARE = 0.01  # минимальная доля рынка
