@@ -207,15 +207,18 @@ def manage_shops(self):
                     # пропорционально отклонению цены от средней
                     target_sale *= sigmoid(log(trade['price'], log_mean_price) - log_mean_price + 1, 
                                            adjustment_rate, MAX_SALES_ADJUSTMENT)
-                elif trade['stock'] == trade['purchase']:
+                # elif trade['stock'] == trade['purchase']:
                     # Если распродали весь товар, амортизируем колебания
-                    target_sale = (target_sale + trade['stock']) // 2
+                    # target_sale = (target_sale + trade['purchase']) // 2
+                # Амортизируем колебания
+                target_sale = (target_sale + trade['purchase']) // 2
             else:
                 if trade['stock'] == trade['purchase'] > 0:
                     target_sale = trade['purchase']
                 else:
                     # По умолчанию, если не было продаж, распределяем пропорционально объемам рынков
                     target_sale = (product['quantity_to_distribute'] * trade['market_size'] / product['total_market_size'])
+            
             target[shop_id] = (max(1, target_sale),
                                max(1, MIN_MARKET_SHARE * trade['market_size']),
                                max(1, MAX_MARKET_SHARE * trade['market_size'])
@@ -315,8 +318,8 @@ def manage_shops(self):
                         new_price *= sigmoid(trade['sold'] / target, 1 / ELASTICITY, 
                                              discount_factor * MAX_PRICE_ADJUSTMENT)
                 # Следим, чтобы цена не опускалась ниже распродажной
-                if new_price < trade['sale_price']:
-                    new_price = trade['sale_price']
+                if new_price < 0.5 * trade['sale_price']:
+                    new_price = 0.5 * trade['sale_price']
             else:  # trade['price'] == 0
                 # Цена по умолчанию для новых продуктов
                 new_price = SALES_PRICE_FACTOR * trade['sale_price']
