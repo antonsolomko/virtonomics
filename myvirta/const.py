@@ -61,3 +61,5 @@ MAX_TECHNOLOGIES = {
     'workshop': 30,
     'power': 22,
     }
+
+TENDER_ACTIVE_PLAYERS = [5526168, 6451449][:1]
