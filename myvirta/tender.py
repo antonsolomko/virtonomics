@@ -1,4 +1,5 @@
 import math
+from .const import TENDER_ACTIVE_PLAYERS
 
 
 def save_technology_sellers_to_db(self, unittype_id: int, level: int,
@@ -53,6 +54,8 @@ def manage_science_tenders(self):
     
     print('Managing science tenders:')
     for tender_id, tender in self.tenders(knowledge_area_kind='research').items():
+        if tender['league'] != 3 and self.knowledge[tender['knowledge']['kind']] > 30:
+            continue
         days_left = (tender['estimated_real_date'] - self.today).days
         unittype_id = tender['tender_params'][0]
         duration = tender['tender_type']
@@ -73,7 +76,7 @@ def manage_science_tenders(self):
                 if price_sum > 2 * 10**9:
                     break
                 sellers = self.technology_sellers_med(unittype_id, level)
-                active_players = [5526168, 6451449] if days_left <= duration else []
+                active_players = TENDER_ACTIVE_PLAYERS if days_left <= duration else []
                 price = round(compute_price(sellers, level, active_players), 2)
                 self.set_technology_offer(unittype_id, level, price)
                 print(' %d:' % tech['level'], market_price, '(%d)' % len(sellers), 

@@ -6,7 +6,7 @@ MAX_MARKET_SHARE = 0.4  # максимальная доля рынка
 MAX_MARKET_SHARE_STOCK = 0.8  # максимальный запас относительно рынка
 MAX_SALES_ADJUSTMENT = 0.1  # максимальных шаг изменения продаж
 MAX_PRICE_ADJUSTMENT = 0.02  # максимальных шаг изменения цены
-ELASTICITY = 25  # эластичность спроса
+ELASTICITY = 40  # эластичность спроса
 SALES_PRICE_FACTOR = 2  # множитель к распродажной цене для новых товаров 
 TARGET_STOCK_RATIO = 0.8  # 
 
@@ -61,3 +61,5 @@ MAX_TECHNOLOGIES = {
     'workshop': 30,
     'power': 22,
     }
+
+TENDER_ACTIVE_PLAYERS = [5526168, 6451449][:1]
