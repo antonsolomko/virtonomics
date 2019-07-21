@@ -53,7 +53,7 @@ api = {
     'unit_summary': 
         'unit/summary?id={unit_id}',
     'units': 
-        'company/units?id={company_id}&pagesize=1000000',
+        'company/units?id={company_id}&unit_class_id=all&pagesize=1000000',
     'unittypes': 
         'unittype/browse',
     }
