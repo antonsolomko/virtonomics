@@ -27,10 +27,11 @@ def manage_restaurants(self, days=3):
     min_price = {
         'restaurant': 7200,
         'educational': 100000,
-        'repair': 1000
+        'repair': 1000,
+        'medicine': 1000,
         }
     
-    for unit_id in self.units(unit_class_kind=['restaurant', 'educational', 'repair', 'service_light']):
+    for unit_id in self.units(unit_class_kind=['restaurant', 'educational', 'repair', 'service_light', 'medicine']):
         print(unit_id)
         unit = self.unit_summary(unit_id)
         if unit['name'][:1] == '*':
