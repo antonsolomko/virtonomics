@@ -132,6 +132,7 @@ class Virta:
         create_supply_contract,  # 
         destroy_supply_contract,  # 
         set_supply_contracts,  # 
+        suspend_supply_contracts,  # 
         supply_contracts_to_orders,  # 
         )
     from ._sale import (

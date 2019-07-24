@@ -213,6 +213,14 @@ def set_supply_contracts(self, unit_id, orders):
     return self.session.post(url, data=data)
 
 
+def suspend_supply_contracts(self, unit_id):
+    """Set quantity to 0 for all supply contracts for a given unit"""
+    
+    supply_contracts = self.supply_contracts(unit_id)
+    orders = self.supply_contracts_to_orders(supply_contracts, quantity=0)
+    return self.set_supply_contracts(unit_id, orders)
+
+
 @staticmethod
 def supply_contracts_to_orders(contracts, **kwargs):
     keys = {'quantity': 'dispatch_quantity',
