@@ -42,7 +42,7 @@ def manage_restaurants(self, days=3):
         if new_price:
             self.set_service_price(unit_id, new_price)
         
-        if unit['unit_class_kind'] in ['restaurant', 'educational', 'repair']:
+        if unit['unit_class_kind'] not in ['service_light']:
             contracts = self.supply_contracts(unit_id)
             orders = self.supply_contracts_to_orders(contracts)
             for product_id, product in self.supply_products(unit_id).items():
