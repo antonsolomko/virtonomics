@@ -49,6 +49,7 @@ EQUIPMENT_SUPPLIERS = {
     4974307: 'lab',
     8197411: 'restaurant',
     8535772: 'repair',
+    5020628: 'medicine',
     }
 
 MAX_TECHNOLOGIES = {

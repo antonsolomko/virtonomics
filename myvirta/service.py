@@ -27,7 +27,7 @@ def manage_restaurants(self, days=3):
     min_price = {
         'restaurant': 7200,
         'educational': 100000,
-        'repair': 1000,
+        'repair': 2000,
         'medicine': 1000,
         }
     
