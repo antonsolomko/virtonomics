@@ -190,8 +190,11 @@ def manage_shops(self):
             std_dev = (sum(t['sold'] * (log(t['price'], log_mean_price) - log_mean_price)**2
                            for t in p_trades.values()) / total_sold
                       ) ** 0.5
-            # наклон сигмоиды
-            adjustment_rate =  MAX_SALES_ADJUSTMENT / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
+            if std_dev > 0:
+                # наклон сигмоиды
+                adjustment_rate = MAX_SALES_ADJUSTMENT / (2**0.5 * std_dev)  # 2**0.5 is crucial here!
+            else:
+                adjustment_rate = MAX_SALES_ADJUSTMENT
         else:
             mean_price = None
             adjustment_rate = MAX_SALES_ADJUSTMENT  # наклон сигмоиды
