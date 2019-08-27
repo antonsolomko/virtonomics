@@ -54,12 +54,12 @@ EQUIPMENT_SUPPLIERS = {
 
 MAX_TECHNOLOGIES = {
     'animalfarm': 28, 
-    'farm': 23, 
-    'mill': 30, 
+    'farm': 25, 
+    'mill': 31, 
     'mine': 23, 
-    'orchard': 23, 
-    'sawmill': 30,
-    'workshop': 30,
+    'orchard': 25, 
+    'sawmill': 31,
+    'workshop': 31,
     'power': 22,
     }
 
