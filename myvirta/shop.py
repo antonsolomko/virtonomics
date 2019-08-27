@@ -95,11 +95,12 @@ def set_shops_default_prices(self, factor=2):
         self.set_shop_default_prices(shop_id)
 
 
-def propagate_contracts(self, reference_shop_id=None):
+def propagate_contracts(self, shops=None, reference_shop_id=None):
     print('Copying contracts')
     if not reference_shop_id:
         reference_shop_id = REFERENCE_SHOP_ID
-    shops = self.units(name=MANAGED_SHOPS_NAMES)
+    if not shops:
+        shops = self.units(name=MANAGED_SHOPS_NAMES)
     ref_contracts = self.supply_contracts(reference_shop_id)  # вытягиваем из ведущего магазина список контрактов
     for shop_id in shops:
         print(shop_id)
