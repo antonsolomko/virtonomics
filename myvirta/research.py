@@ -127,7 +127,7 @@ def manage_research(self):
     new_research = {}
     for unittype_id in self.unittypes(need_technology=True):
         if self.unittypes[unittype_id]['kind'] in ['mine', 'farm', 
-                'orchard', 'fishingbase', 'sawmill']:
+                'orchard', 'fishingbase']:  # 'sawmill'
             continue
         for level in self.researchable_technologies(unittype_id):
             if not current_research.get(unittype_id, {}).get(level, []):
@@ -148,10 +148,11 @@ def manage_research(self):
                   '%.2f' % labs[i]['equipment_quality'])
     
     for level, unittypes in sorted(new_research.items()):
-        if level <= 13: num = 6  # 100
-        elif level <= 19: num = 5  # 300
-        elif level <= 25: num = 4  # 700
-        elif level <= 27: num = 3  # 850
+        if level <= 13: num = 7  # 100
+        elif level <= 19: num = 6  # 300
+        elif level <= 25: num = 5  # 700
+        elif level <= 27: num = 4  # 850
+        elif level <= 30: num = 3  # 850
         elif level <= 32: num = 2  # 1000
         else: num = 1  # 1000
         for unittype_id in unittypes:
