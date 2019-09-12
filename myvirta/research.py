@@ -127,7 +127,7 @@ def manage_research(self):
     new_research = {}
     for unittype_id in self.unittypes(need_technology=True):
         if self.unittypes[unittype_id]['kind'] in ['mine', 'farm', 
-                'orchard', 'fishingbase']:  # 'sawmill'
+                'orchard']:  # 'sawmill', 'fishingbase'
             continue
         for level in self.researchable_technologies(unittype_id):
             if not current_research.get(unittype_id, {}).get(level, []):
