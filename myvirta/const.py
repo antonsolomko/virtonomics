@@ -45,7 +45,7 @@ EQUIPMENT_SUPPLIERS = {
     8415404: 'office',
     6715974: ('workshop', 'mill'),
     3329984: ('farm', 'orchard'),
-    8393314: 'educational',
+    8395882: 'educational',
     4974307: 'lab',
     8197411: 'restaurant',
     8535772: 'repair',
