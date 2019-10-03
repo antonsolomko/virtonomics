@@ -60,6 +60,7 @@ class MyVirta(Virta):
         manage_science_tenders,
         manage_tenders,
         )
+    from .competition import read_shagreen_data
     
     def __init__(self, server='olga', **kwargs):
         super().__init__(server, **kwargs)
