@@ -1,18 +1,21 @@
 import json
 import pandas
+import sys
+sys.path.append('./virtonomics')
+from jsondecoder import Decoder
 
 
-def read_shagreen_data(self, df=False):
-    def load_data(shagreen_id):
+def read_shagreen_data(self, df=False, save=False):
+    def load_data(shagreen_id, day):
         try:
-            with open(f'./olla/shagren{shagreen_id}.json', 'r') as file:
-                data = json.load(file)
+            with open(f'./olla/shagren{shagreen_id}-{day}.json', 'r') as file:
+                data = json.load(file, cls=Decoder)
         except FileNotFoundError:
             data = {}
         return data
     
-    def save_data(data, shagreen_id):
-        with open(f'./olla/shagren{shagreen_id}.json', 'w') as file:
+    def save_data(data, shagreen_id, day):
+        with open(f'./olla/shagren{shagreen_id}-{day}.json', 'w') as file:
             json.dump(data, file)
     
     def read_unit_data(unit_id):
@@ -50,6 +53,26 @@ def read_shagreen_data(self, df=False):
         result['price'] = float(page.xpath(xp)[0].replace(' ', '').replace('$', ''))
         return result
     
+    def read_self_unit_data(unit_id):
+        result = {}
+        unit_summary = self.unit_summary(unit_id)
+        result['company'] = self.company['name']
+        result['district'] = unit_summary['district_name']
+        result['size'] = unit_summary['square']
+        result['departments'] = unit_summary['section_count']
+        result['fame'] = round(unit_summary['fame'] * 100, 2)
+        result['visitors'] = unit_summary['customers_count']
+        url = self.domain_ext + 'unit/view/%d' % unit_id
+        page = self.session.tree(url)
+        xp = '//img[contains(@src,"pub/artefact")]/@title'
+        innovations = page.xpath(xp)
+        result['innovations'] = list(map(str, innovations))
+        url = self.domain_ext + 'unit/view/%d/product_history/423040/' % unit_id
+        page = self.session.tree(url)
+        xp = '//tr/td[4]/text()'
+        result['price'] = float(page.xpath(xp)[0])
+        return result
+    
     def to_dataframe(data):
         result = []
         index = []
@@ -64,6 +87,8 @@ def read_shagreen_data(self, df=False):
                 else:
                     for i in v:
                         res[i] = 1
+            if 'total_revenue' in res and 'total_sold' in res:
+                res['avg_price'] = res['total_revenue'] / res['total_sold']
             result.append(res)
         return pandas.DataFrame(result, index).sort_values('total_revenue', ascending=False)
             
@@ -77,8 +102,8 @@ def read_shagreen_data(self, df=False):
     url = page.xpath(xp)[0]
     shagreen_id = int(url.split('/')[-1])
     
-    data = load_data(shagreen_id)
     day = 7 - days_left + 1
+    data = load_data(shagreen_id, day-1)
     
     page = self.session.tree(url)
     xp = '//a[contains(@href, "unit/view/")]/..'
@@ -90,25 +115,28 @@ def read_shagreen_data(self, df=False):
         units.append(unit_id)
         if unit_id not in data:
             data[unit_id] = {}
+        if day not in data[unit_id]:
             data[unit_id][day] = {}
             data[unit_id][day]['total_revenue'] = total_revenue
     
     for unit_id in units:
         if unit_id in self.units():
-            continue
-        unit_data = read_unit_data(unit_id)
+            unit_data = read_self_unit_data(unit_id)
+        else:
+            unit_data = read_unit_data(unit_id)
         data[unit_id][day] = {**data[unit_id][day], **unit_data}
         revenue = data[unit_id][day]['total_revenue']
         if day-1 in data[unit_id]:
-            revenue -= data[unit_id][day]['total_revenue']
+            revenue -= data[unit_id][day-1]['total_revenue']
         data[unit_id][day]['revenue'] = revenue
         data[unit_id][day]['sold'] = round(revenue / data[unit_id][day]['price'])
         total_sold = data[unit_id][day]['sold']
         if day-1 in data[unit_id]:
-            total_sold += data[unit_id][day]['total_sold']
+                total_sold += data[unit_id][day-1]['total_sold']
         data[unit_id][day]['total_sold'] = total_sold
     
-    save_data(data, shagreen_id)
+    if save:
+        save_data(data, shagreen_id, day)
     
     if df:
         data = to_dataframe(data)
