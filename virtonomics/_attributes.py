@@ -1,6 +1,6 @@
 from .types import Dict
 from .jsondecoder import Decoder
-from._date import str_to_date
+from ._date import str_to_date
 
 def __getattr__(self, attrname):
     if attrname == 'session':

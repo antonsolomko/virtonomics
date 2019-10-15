@@ -48,8 +48,14 @@ def get_days_to_refresh(self):
 def get_oligarch_competition_days_left(self):
     url = self.domain_ext + 'olla'
     page = self.session.tree(url)
-    xp = '//td[contains(.,"Осталось пересчётов: ")]/text()'
+    xp = '//a[contains(.,"Шагрень")]/@href'
+    url = page.xpath(xp)
+    if url:
+        url = url[0]
+    else:
+        return None
+    page = self.session.tree(url)
+    xp = '//h3[contains(.,"Осталось пересчётов:")]/text()'
     days = page.xpath(xp)
-    self.oligarch_competition_days_left = int(
-        days[0].split('Осталось пересчётов: ')[1].split('\n')[0]) if days else None
+    self.oligarch_competition_days_left = int(days[0].split(': ')[1]) if days else None
     return self.oligarch_competition_days_left
