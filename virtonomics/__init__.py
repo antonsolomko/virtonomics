@@ -1,13 +1,15 @@
 import requests
 from lxml import html
 
+from ._attributes import Attributes
+
 # Little extension of Session interface for code conciseness.
 # self.session.tree(url) will return the page tree structure,
 # in which we can locate elements by xpath
 requests.Session.tree = lambda self, url: html.fromstring(self.get(url).content)
 
 
-class Virta:
+class Virta(Attributes):
     """Virtonomics framework.
     
     Arguments:
@@ -72,7 +74,7 @@ class Virta:
     from ._const import domain, user, password, path, db_name, api, state_kinds, today
     from ._init import __init__
     from ._del import __del__, quit
-    from ._attributes import __getattr__
+    #from ._attributes import __getattr__
     from ._session import open_session  # 
     from ._database import (
         open_database,  # 
