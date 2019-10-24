@@ -5,7 +5,7 @@ sys.path.append('./virtonomics')
 from jsondecoder import Decoder
 
 
-def load_shagreen_data(self, shagreen_id, day):
+def load_shagreen_data(shagreen_id, day):
     try:
         with open(f'./olla/shagren{shagreen_id}-{day}.json', 'r') as file:
             data = json.load(file, cls=Decoder)
@@ -19,29 +19,31 @@ def save_shagreen_data(data, shagreen_id, day):
         json.dump(data, file)
 
 
-def summary_to_dataframe(data, day=None):
-    if not day:
-        day = max(k for d in data.values() for k in d)
-    result = []
-    index = []
-    for unit_id in data:
-        if day not in data[unit_id]:
-            continue
-        res = {}
-        index.append(unit_id)
-        for k, v in data[unit_id][day].items():
-            if k != 'innovations':
-                res[k] = v
-            else:
-                for i in v:
-                    res[i] = 1
-        if 'total_revenue' in res and 'total_sold' in res:
-            res['avg_price'] = res['total_revenue'] / res['total_sold']
-        result.append(res)
-    df = pandas.DataFrame(result, index)
-    if not df.empty:
-        df.sort_values('total_revenue', ascending=False, inplace=True)
-    return df
+def summary_to_dataframe(data):
+    max_day = max(k for d in data.values() for k in d)
+    result = {}
+    for day in range(1, max_day+1):
+        res = []
+        index = []
+        for unit_id in data:
+            if day not in data[unit_id]:
+                continue
+            r = {}
+            index.append(unit_id)
+            for k, v in data[unit_id][day].items():
+                if k != 'innovations':
+                    r[k] = v
+                else:
+                    for i in v:
+                        r[i] = 1
+            if 'total_revenue' in r and 'total_sold' in r:
+                r['avg_price'] = r['total_revenue'] / r['total_sold']
+            res.append(r)
+        df = pandas.DataFrame(res, index)
+        if not df.empty:
+            df.sort_values('total_revenue', ascending=False, inplace=True)
+        result[day] = df
+    return result
 
 
 def read_shagreen_data(self, save=False):
@@ -112,7 +114,7 @@ def read_shagreen_data(self, save=False):
     url = page.xpath(xp)[0]
     shagreen_id = int(url.split('/')[-1])
     day = 7 - days_left + 1
-    data = self.load_shagreen_data(shagreen_id, day-1)
+    data = load_shagreen_data(shagreen_id, day-1)
     
     page = self.session.tree(url)
     xp = '//a[contains(@href, "unit/view/")]/..'
@@ -159,6 +161,6 @@ def read_shagreen_data(self, save=False):
         k = next(iter(d.values())).get('company', i)
         product_history[k] = pandas.DataFrame(d.values(), d.keys())
     
-    data_df = summary_to_dataframe(data, day)
+    data_df = summary_to_dataframe(data)
         
     return data, data_df, product_history
