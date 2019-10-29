@@ -36,8 +36,10 @@ api = {
         'unit/refresh',
     'regions': 
         'geo/region/browse',
-    'retail': 
+    'retail_metrics': 
         'marketing/report/retail/metrics?product_id={product_id}&geo={geo}',
+    'retail_history':
+        'marketing/report/retail/history?product_id={product_id}&geo={geo}',
     'sale_contracts': 
         'unit/sale/contracts?id={unit_id}{product_filter}&pagesize=1000000',
     'supply_contracts': 

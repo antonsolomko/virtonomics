@@ -85,6 +85,7 @@ class Virta(Attributes):
         get_server_date,  # 
         get_days_to_refresh,  # 
         get_oligarch_competition_days_left,  # 
+        get_shagreen_id,
         )
     from ._message import (
         messages,  # 
@@ -94,6 +95,7 @@ class Virta(Attributes):
         produce,  # 
         city_rent,  # 
         retail_metrics,  # 
+        retail_history,
         offers,  # 
         )
     from ._unit import (

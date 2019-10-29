@@ -59,3 +59,15 @@ def get_oligarch_competition_days_left(self):
     days = page.xpath(xp)
     self.oligarch_competition_days_left = int(days[0].split(': ')[1]) if days else None
     return self.oligarch_competition_days_left
+
+
+def get_shagreen_id(self):
+    url = self.domain_ext + 'olla'
+    page = self.session.tree(url)
+    xp = '//a[contains(.,"Шагрень")]/@href'
+    url = page.xpath(xp)
+    if url:
+        self.shagreen_id = int(url[0].split('/')[-1])
+    else:
+        self.shagreen_id = None
+    return self.shagreen_id

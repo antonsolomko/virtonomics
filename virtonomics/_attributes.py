@@ -19,6 +19,9 @@ class Attributes:
         
         elif attrname == 'oligarch_competition_days_left':
             return self.get_oligarch_competition_days_left()
+        
+        elif attrname == 'shagreen_id':
+            return self.get_shagreen_id()
             
         elif attrname in ['token', 'cities', 'regions', 'countries', 'product_categories', 
                           'products', 'goods', 'industries', 'unittypes', 'company', 
