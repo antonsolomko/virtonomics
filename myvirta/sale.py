@@ -58,7 +58,7 @@ def manage_sale_offers(self, unit_id, delta=0, markup=0.1, target_ratio=10):
                 offer['constraint'] = 3
             if offer['constraint'] in (1,2,5) or any(
                     c['consumer_company_id'] != self.company['id'] 
-                    or c['consumer_unit_class_symbol'] == 'shop'
+                    #or c['consumer_unit_class_symbol'] == 'shop'
                     for c in contracts):
                 # Adjust price
                 r = target_ratio

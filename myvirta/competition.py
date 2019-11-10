@@ -194,7 +194,7 @@ def read_shagreen_data(self, save=False):
             if 'price' in unit_data:
                 data[unit_id][day]['sold'] = round(revenue / data[unit_id][day]['price'])
                 total_sold = data[unit_id][day]['sold']
-                if day-1 in data[unit_id]:
+                if day-1 in data[unit_id] and 'total_sold' in data[unit_id][day-1]:
                     total_sold += data[unit_id][day-1]['total_sold']
                 data[unit_id][day]['total_sold'] = total_sold
         
