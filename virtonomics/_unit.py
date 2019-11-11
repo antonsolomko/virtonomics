@@ -292,8 +292,8 @@ def create_unit(self, *args, **kwargs):
                     text = row.xpath('./../label/text()[last()]')
                 else:
                     text = row.xpath('./../../td[2]/text()[last()]')
-                    if not text:
-                        text = row.xpath('./../../td[3]/text()[last()]')
+                if not text:
+                    text = row.xpath('./../../td[3]/text()[last()]')
                 text = str(text[0]).strip()
                 result[value] = text
             return name, result
