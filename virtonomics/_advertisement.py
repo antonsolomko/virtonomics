@@ -125,3 +125,18 @@ def stop_advertisement(self, unit_id):
     url = self.domain_ext + 'unit/view/%s/virtasement' % unit_id
     data = {'cancel': 1}
     return self.session.post(url, data=data)
+
+'''
+def set_product_advertisement(self, product_id, region_name, cities=None,
+                              cost=0, platform=1):
+    region_id = self.regions.select(region_name=region_name)['id']
+    unit_id = self.units.select(unit_class_kind='office', region_name=region_name)['id']
+    if not cities:
+        cities = list(self.cities(region_name=region_name))
+    url = self.domain + f'ajax/unit/virtasement/{unit_id}/product_brand/{product_id}/181774'
+    data = {
+        'region': region_id,
+        'city': cities,
+        'type': [2265 - platform],
+        'moneyCost': cost,
+    }'''

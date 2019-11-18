@@ -219,6 +219,15 @@ def region_money_project(self, region_id, project_name):
     self.session.get(url)
 
 
+def region_country_up(self, region_id):
+    url = self.domain_ext + 'politics/manage'
+    data = {
+        'region_id': region_id,
+        'command': 'country_up'
+    }
+    self.session.post(url, data=data)
+
+
 def country_money_project(self, country_id, project_name):
     """Run country project.
     (Законы страны)

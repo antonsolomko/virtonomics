@@ -188,6 +188,7 @@ class Virta(Attributes):
         city_retail_project,  # 
         city_change_rent,  # 
         region_money_project,  # 
+        region_country_up,
         country_money_project,  # 
         election_candidates,  # список кандидатов на выборах
         vote,  # проголосовать на выборах за указанного кандидата

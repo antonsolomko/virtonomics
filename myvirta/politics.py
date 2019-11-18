@@ -96,6 +96,7 @@ def manage_regions(self):
                and c['governor']['governor_name']==self.user]
     for region in regions:
         print(region['region_name'], self.days_to_refresh)
+        self.region_country_up(region['id'])
         url = self.domain_ext + 'politics/governor/%s' % region['id']
         page = self.session.tree(url)
         for eco_factor in ECO_FACTORS:
