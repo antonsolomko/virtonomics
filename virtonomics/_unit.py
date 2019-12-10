@@ -317,7 +317,7 @@ def create_unit(self, *args, **kwargs):
         kwargs['custom_name'] = kwargs['name']
         
     arg_iter = iter(args)
-    url = self.domain_ext + 'unit/create/%s' % self.company['id']
+    url = self.domain_ext + 'unit/create/%s?old' % self.company['id']
     name = None
     print('\nCreating unit')
     while 'unit/create/' in url:

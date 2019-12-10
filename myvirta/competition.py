@@ -207,7 +207,7 @@ def read_shagreen_data(self, save=False):
 def compute_elasticity(data, unit_id):
     coords = [(d['price'], d['sold']) for u, d in data.items()
               if abs(d['fame'] - data[unit_id]['fame']) < 20
-                 and abs(d['price']/data[unit_id]['price'] - 1) < 0.2]
+                 and abs(d['price']/data[unit_id]['price'] - 1) < 0.16]
     X0 = np.array([c[0] for c in coords]).reshape([-1,1]) - data[unit_id]['price']
     Y0 = np.array([c[1] for c in coords]).reshape([-1,1]) - data[unit_id]['sold']
     plt.scatter(X0, Y0, color='red')
